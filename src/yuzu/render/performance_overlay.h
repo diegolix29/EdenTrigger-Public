@@ -17,8 +17,6 @@ class PerformanceOverlay;
 }
 
 class QLineSeries;
-class QChart;
-class QChartView;
 class QValueAxis;
 class MainWindow;
 
@@ -61,12 +59,6 @@ private:
     // drag
     QPoint m_drag_start_pos;
 
-    // fps chart
-    QLineSeries *m_fpsSeries = nullptr;
-    QChart *m_fpsChart = nullptr;
-    QChartView *m_fpsChartView = nullptr;
-    QValueAxis *m_fpsX = nullptr;
-    QValueAxis *m_fpsY = nullptr;
 
 signals:
     void closed();

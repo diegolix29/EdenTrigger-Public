@@ -34,6 +34,7 @@ enum class IntSetting(override val key: String) : AbstractIntSetting {
     AUDIO_OUTPUT_ENGINE("output_engine"),
     MAX_ANISOTROPY("max_anisotropy"),
     THEME("theme"),
+    THEME_COLOR("theme_color"),
     THEME_MODE("theme_mode"),
     APP_LANGUAGE("app_language"),
     OVERLAY_SCALE("control_scale"),

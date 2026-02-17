@@ -28,9 +28,9 @@ import org.yuzu.yuzu_emu.features.settings.model.Settings.MenuTag
 import org.yuzu.yuzu_emu.features.settings.model.ShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.StringSetting
 import org.yuzu.yuzu_emu.features.settings.model.view.*
+import org.yuzu.yuzu_emu.utils.NativeConfig
 import org.yuzu.yuzu_emu.utils.GpuDriverHelper
 import org.yuzu.yuzu_emu.utils.InputHandler
-import org.yuzu.yuzu_emu.utils.NativeConfig
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
@@ -109,7 +109,7 @@ class SettingsFragmentPresenter(
             MenuTag.SECTION_INPUT_PLAYER_SIX -> addInputPlayer(sl, 5)
             MenuTag.SECTION_INPUT_PLAYER_SEVEN -> addInputPlayer(sl, 6)
             MenuTag.SECTION_INPUT_PLAYER_EIGHT -> addInputPlayer(sl, 7)
-            MenuTag.SECTION_APP_SETTINGS -> addThemeSettings(sl)
+            MenuTag.SECTION_APP_SETTINGS -> addAppSettings(sl)
             MenuTag.SECTION_DEBUG -> addDebugSettings(sl)
             MenuTag.SECTION_FREEDRENO -> addFreedrenoSettings(sl)
             MenuTag.SECTION_APPLETS -> addAppletSettings(sl)
@@ -1000,6 +1000,15 @@ class SettingsFragmentPresenter(
             override fun reset() = setInt(this.defaultValue)
         }
 
+    private fun getStickDirections(playerIndex: Int, nativeAnalog: NativeAnalog): List<SettingsItem> {
+        return listOf(
+            AnalogInputSetting(playerIndex, nativeAnalog, AnalogDirection.Up, R.string.up),
+            AnalogInputSetting(playerIndex, nativeAnalog, AnalogDirection.Down, R.string.down),
+            AnalogInputSetting(playerIndex, nativeAnalog, AnalogDirection.Left, R.string.left),
+            AnalogInputSetting(playerIndex, nativeAnalog, AnalogDirection.Right, R.string.right)
+        )
+    }
+
     private fun getExtraStickSettings(
         playerIndex: Int,
         nativeAnalog: NativeAnalog
@@ -1023,26 +1032,51 @@ class SettingsFragmentPresenter(
             }
         }
 
-        add(
-            SingleChoiceSetting(
-                themeMode,
-                titleId = R.string.change_theme_mode,
-                choicesId = R.array.themeModeEntries,
-                valuesId = R.array.themeModeValues
-            )
-        )
+        return out
+    }
 
-        if (IntSetting.THEME.getInt() != 1) {
+    private fun addAppSettings(sl: ArrayList<SettingsItem>) {
+        sl.apply {
+            val themeMode = object : AbstractIntSetting {
+                override val key: String = IntSetting.THEME.key
+                override val defaultValue: Int = IntSetting.THEME.defaultValue
+
+                override fun getInt(needsGlobal: Boolean): Int =
+                    NativeConfig.getInt(key, needsGlobal)
+
+                override fun setInt(value: Int) = NativeConfig.setInt(key, value)
+
+                override fun getValueAsString(needsGlobal: Boolean): String =
+                    NativeConfig.getInt(key, needsGlobal).toString()
+
+                override fun reset() = setInt(defaultValue)
+            }
+
             add(
                 SingleChoiceSetting(
-                    staticThemeColor,
-                    titleId = R.string.static_theme_color,
-                    choicesId = R.array.staticThemeNames,
-                    valuesId = R.array.staticThemeValues
+                    themeMode,
+                    titleId = R.string.change_theme_mode,
+                    choicesId = R.array.themeModeEntries,
+                    valuesId = R.array.themeModeValues
                 )
             )
 
             if (IntSetting.THEME.getInt() != 1) {
+                val staticThemeColor = object : AbstractIntSetting {
+                    override val key: String = IntSetting.THEME_COLOR.key
+                    override val defaultValue: Int = IntSetting.THEME_COLOR.defaultValue
+
+                    override fun getInt(needsGlobal: Boolean): Int =
+                        NativeConfig.getInt(key, needsGlobal)
+
+                    override fun setInt(value: Int) = NativeConfig.setInt(key, value)
+
+                    override fun getValueAsString(needsGlobal: Boolean): String =
+                        NativeConfig.getInt(key, needsGlobal).toString()
+
+                    override fun reset() = setInt(defaultValue)
+                }
+
                 add(
                     SingleChoiceSetting(
                         staticThemeColor,
@@ -1086,8 +1120,8 @@ class SettingsFragmentPresenter(
             )
 
             add(HeaderSetting(R.string.buttons))
-            add(BooleanSetting.ENABLE_FOLDER_BUTTON.key)
-            add(BooleanSetting.ENABLE_QLAUNCH_BUTTON.key)
+            add(SwitchSetting(BooleanSetting.ENABLE_FOLDER_BUTTON))
+            add(SwitchSetting(BooleanSetting.ENABLE_QLAUNCH_BUTTON))
             if (!NativeLibrary.isFirmwareAvailable()) {
                 BooleanSetting.ENABLE_QLAUNCH_BUTTON.setBoolean(false)
             }
