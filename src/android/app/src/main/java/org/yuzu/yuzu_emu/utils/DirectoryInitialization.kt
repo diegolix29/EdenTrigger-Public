@@ -4,7 +4,12 @@
 package org.yuzu.yuzu_emu.utils
 
 import androidx.preference.PreferenceManager
+import java.io.File
 import java.io.IOException
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import org.yuzu.yuzu_emu.NativeLibrary
 import org.yuzu.yuzu_emu.YuzuApplication
 import org.yuzu.yuzu_emu.features.settings.model.BooleanSetting
@@ -23,6 +28,7 @@ object DirectoryInitialization {
     fun start() {
         if (!areDirectoriesReady) {
             initializeInternalStorage()
+            ensureKeysDirectoryExists()
             NativeLibrary.initializeSystem(false)
             NativeConfig.initializeGlobalConfig()
             NativeLibrary.reloadProfiles()
@@ -43,6 +49,39 @@ object DirectoryInitialization {
             NativeLibrary.setAppDirectory(userPath!!)
         } catch (e: IOException) {
             e.printStackTrace()
+        }
+    }
+
+    private fun ensureKeysDirectoryExists() {
+        try {
+            val keysDir = File(userPath, "keys")
+            if (!keysDir.exists()) {
+                keysDir.mkdirs()
+            }
+
+            val prodKeysFile = File(keysDir, "prod.keys")
+            if (!prodKeysFile.exists()) {
+                copyBundledKeysIfNeeded()
+            }
+        } catch (e: Exception) {
+            Log.error("[DirectoryInitialization] Failed to ensure keys directory: ${e.message}")
+        }
+    }
+
+    private fun copyBundledKeysIfNeeded() {
+        try {
+            // Copy bundled prod.keys from assets
+            val assetManager = YuzuApplication.appContext.assets
+            val inputStream: InputStream = assetManager.open("prod.keys")
+            val prodKeysFile = File(userPath, "keys/prod.keys")
+            inputStream.use { input ->
+                FileOutputStream(prodKeysFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            Log.info("[DirectoryInitialization] Bundled prod.keys copied successfully")
+        } catch (e: Exception) {
+            Log.error("[DirectoryInitialization] Failed to copy bundled keys: ${e.message}")
         }
     }
 

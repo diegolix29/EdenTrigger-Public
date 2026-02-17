@@ -191,8 +191,8 @@ android {
             dimension = "version"
             isDefault = true
 
-            manifestPlaceholders += mapOf("appNameBase" to "Eden")
-            resValue("string", "app_name_suffixed", "Eden")
+            manifestPlaceholders += mapOf("appNameBase" to "Eden Trigger")
+            resValue("string", "app_name_suffixed", "Eden Trigger")
 
             ndk {
                 abiFilters += listOf("arm64-v8a")
@@ -201,8 +201,8 @@ android {
 
         create("genshinSpoof") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "Eden Optimized")
-            resValue("string", "app_name_suffixed", "Eden Optimized")
+            manifestPlaceholders += mapOf("appNameBase" to "Eden Trigger Optimized")
+            resValue("string", "app_name_suffixed", "Eden Trigger Optimized")
             applicationId = "com.miHoYo.Yuanshen"
 
             ndk {
@@ -212,8 +212,8 @@ android {
 
         create("legacy") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "Eden Legacy")
-            resValue("string", "app_name_suffixed", "Eden Legacy")
+            manifestPlaceholders += mapOf("appNameBase" to "Eden Trigger Legacy")
+            resValue("string", "app_name_suffixed", "Eden Trigger Legacy")
             applicationId = "dev.legacy.eden_emulator"
 
             externalNativeBuild {
@@ -235,8 +235,8 @@ android {
 
         create("chromeOS") {
             dimension = "version"
-            manifestPlaceholders += mapOf("appNameBase" to "Eden ChromeOS")
-            resValue("string", "app_name_suffixed", "Eden ChromeOS")
+            manifestPlaceholders += mapOf("appNameBase" to "Eden Trigger ChromeOS")
+            resValue("string", "app_name_suffixed", "Eden Trigger ChromeOS")
 
             ndk {
                 abiFilters += listOf("x86_64")
@@ -263,7 +263,7 @@ android {
 
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
-        resValue("string", "app_name", "Eden$suffix")
+        resValue("string", "app_name", "$currentName$suffix")
     }
 }
 

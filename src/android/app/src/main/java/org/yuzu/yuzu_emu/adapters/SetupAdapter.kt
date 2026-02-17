@@ -61,8 +61,9 @@ class SetupAdapter(val activity: AppCompatActivity, pages: List<SetupPage>) :
 
                     binding.pageButtonContainer.addView(pageButtonView)
 
-                    // Disable buton add if its already completed
-                    if (pageButton.buttonState.invoke() == ButtonState.BUTTON_ACTION_COMPLETE) {
+                    val buttonState = pageButton.buttonState.invoke()
+                    val isKeysButton = pageButton.titleId == org.yuzu.yuzu_emu.R.string.keys
+                    if (buttonState == ButtonState.BUTTON_ACTION_COMPLETE && !isKeysButton) {
                         onStepCompleted(pageButton.titleId, pageFullyCompleted = false)
                     }
                 }
