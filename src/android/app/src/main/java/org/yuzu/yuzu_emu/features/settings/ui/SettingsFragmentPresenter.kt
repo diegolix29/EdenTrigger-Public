@@ -23,6 +23,7 @@ import org.yuzu.yuzu_emu.features.settings.model.ByteSetting
 import org.yuzu.yuzu_emu.features.settings.model.IntSetting
 import org.yuzu.yuzu_emu.features.settings.model.LongSetting
 import org.yuzu.yuzu_emu.features.settings.model.Settings
+import org.yuzu.yuzu_emu.features.settings.model.MemoryFlushSettings
 import org.yuzu.yuzu_emu.features.settings.model.Settings.MenuTag
 import org.yuzu.yuzu_emu.features.settings.model.ShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.StringSetting
@@ -236,6 +237,7 @@ class SettingsFragmentPresenter(
             add(LongSetting.CUSTOM_RTC.key)
 
             add(HeaderSetting(R.string.cpu))
+            add(IntSetting.CPU_CORE_CONFIG.key)
             add(IntSetting.FAST_CPU_TIME.key)
             add(BooleanSetting.CORE_SYNC_CORE_SPEED.key)
 
@@ -317,6 +319,7 @@ class SettingsFragmentPresenter(
             add(BooleanSetting.SHOW_APP_RAM_USAGE.key)
             add(BooleanSetting.SHOW_SYSTEM_RAM_USAGE.key)
             add(BooleanSetting.SHOW_BAT_TEMPERATURE.key)
+            add(BooleanSetting.SHOW_CPU_TEMPERATURE.key)
             add(IntSetting.BAT_TEMPERATURE_UNIT.key)
             add(BooleanSetting.SHOW_POWER_INFO.key)
             add(BooleanSetting.SHOW_SHADERS_BUILDING.key)
@@ -1019,136 +1022,23 @@ class SettingsFragmentPresenter(
                 add(SliderSetting(modifierRangeSetting, R.string.modifier_range))
             }
         }
-        return out
-    }
 
-    private fun getStickDirections(player: Int, stick: NativeAnalog): List<AnalogInputSetting> =
-        listOf(
-            AnalogInputSetting(
-                player,
-                stick,
-                AnalogDirection.Up,
-                R.string.up
-            ),
-            AnalogInputSetting(
-                player,
-                stick,
-                AnalogDirection.Down,
-                R.string.down
-            ),
-            AnalogInputSetting(
-                player,
-                stick,
-                AnalogDirection.Left,
-                R.string.left
-            ),
-            AnalogInputSetting(
-                player,
-                stick,
-                AnalogDirection.Right,
-                R.string.right
+        add(
+            SingleChoiceSetting(
+                themeMode,
+                titleId = R.string.change_theme_mode,
+                choicesId = R.array.themeModeEntries,
+                valuesId = R.array.themeModeValues
             )
         )
 
-    private fun addThemeSettings(sl: ArrayList<SettingsItem>) {
-        sl.apply {
-            val theme: AbstractIntSetting = object : AbstractIntSetting {
-                override fun getInt(needsGlobal: Boolean): Int = IntSetting.THEME.getInt()
-                override fun setInt(value: Int) {
-                    IntSetting.THEME.setInt(value)
-                    settingsViewModel.setShouldRecreate(true)
-                }
-
-                override val key: String = IntSetting.THEME.key
-                override val isRuntimeModifiable: Boolean = IntSetting.THEME.isRuntimeModifiable
-                override fun getValueAsString(needsGlobal: Boolean): String =
-                    IntSetting.THEME.getValueAsString()
-
-                override val defaultValue: Int = IntSetting.THEME.defaultValue
-                override fun reset() = IntSetting.THEME.setInt(defaultValue)
-            }
-
-            add(HeaderSetting(R.string.app_settings))
-            add(IntSetting.APP_LANGUAGE.key)
-
-            if (NativeLibrary.isUpdateCheckerEnabled()) {
-                add(BooleanSetting.ENABLE_UPDATE_CHECKS.key)
-            }
-
-            add(BooleanSetting.ENABLE_QUICK_SETTINGS.key)
-
-            add(HeaderSetting(R.string.theme_and_color))
-
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(
-                    SingleChoiceSetting(
-                        theme,
-                        titleId = R.string.change_app_theme,
-                        choicesId = R.array.themeEntriesA12,
-                        valuesId = R.array.themeValuesA12
-                    )
-                )
-            } else {
-                add(
-                    SingleChoiceSetting(
-                        theme,
-                        titleId = R.string.change_app_theme,
-                        choicesId = R.array.themeEntries,
-                        valuesId = R.array.themeValues
-                    )
-                )
-            }
-
-            val themeMode: AbstractIntSetting = object : AbstractIntSetting {
-                override fun getInt(needsGlobal: Boolean): Int = IntSetting.THEME_MODE.getInt()
-                override fun setInt(value: Int) {
-                    IntSetting.THEME_MODE.setInt(value)
-                    settingsViewModel.setShouldRecreate(true)
-                }
-
-                override val key: String = IntSetting.THEME_MODE.key
-                override val isRuntimeModifiable: Boolean =
-                    IntSetting.THEME_MODE.isRuntimeModifiable
-
-                override fun getValueAsString(needsGlobal: Boolean): String =
-                    IntSetting.THEME_MODE.getValueAsString()
-
-                override val defaultValue: Int = IntSetting.THEME_MODE.defaultValue
-                override fun reset() {
-                    IntSetting.THEME_MODE.setInt(defaultValue)
-                    settingsViewModel.setShouldRecreate(true)
-                }
-            }
-
-            val staticThemeColor: AbstractIntSetting = object : AbstractIntSetting {
-                val preferences = PreferenceManager.getDefaultSharedPreferences(
-                    YuzuApplication.appContext
-                )
-                override fun getInt(needsGlobal: Boolean): Int =
-                    preferences.getInt(Settings.PREF_STATIC_THEME_COLOR, 0)
-                override fun setInt(value: Int) {
-                    preferences.edit() { putInt(Settings.PREF_STATIC_THEME_COLOR, value) }
-                    settingsViewModel.setShouldRecreate(true)
-                }
-
-                override val key: String = Settings.PREF_STATIC_THEME_COLOR
-                override val isRuntimeModifiable: Boolean = true
-                override fun getValueAsString(needsGlobal: Boolean): String =
-                    preferences.getInt(Settings.PREF_STATIC_THEME_COLOR, 0).toString()
-                override val defaultValue: Any = 0
-                override fun reset() {
-                    preferences.edit() { putInt(Settings.PREF_STATIC_THEME_COLOR, 0) }
-                    settingsViewModel.setShouldRecreate(true)
-                }
-            }
-
+        if (IntSetting.THEME.getInt() != 1) {
             add(
                 SingleChoiceSetting(
-                    themeMode,
-                    titleId = R.string.change_theme_mode,
-                    choicesId = R.array.themeModeEntries,
-                    valuesId = R.array.themeModeValues
+                    staticThemeColor,
+                    titleId = R.string.static_theme_color,
+                    choicesId = R.array.staticThemeNames,
+                    valuesId = R.array.staticThemeValues
                 )
             )
 

@@ -96,12 +96,9 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent)
               "Can help reduce stuttering at lower framerates."));
 
     // Cpu
-    INSERT(Settings,
-           cpu_accuracy,
-           tr("Accuracy:"),
-           tr("Change the accuracy of the emulated CPU (for debugging only)."));
+    INSERT(Settings, cpu_accuracy, tr("Accuracy:"), tr("Change accuracy of emulated CPU (for debugging only)."));
     INSERT(Settings, cpu_backend, tr("Backend:"), QString());
-
+    INSERT(Settings, cpu_core_config, tr("Core Configuration:"), tr("Select which CPU cores to use for emulation. Efficiency cores save battery, performance cores improve speed."));
     INSERT(Settings,
            fast_cpu_time,
            tr("CPU Overclock"),
@@ -115,7 +112,6 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent)
            tr("Custom CPU Ticks"),
            tr("Set a custom value of CPU ticks. Higher values can increase performance, but may "
               "cause deadlocks. A range of 77-21000 is recommended."));
-    INSERT(Settings, cpu_backend, tr("Backend:"), QString());
 
     INSERT(Settings, vtable_bouncing,
         tr("Virtual Table Bouncing"),
@@ -559,6 +555,13 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent)
                           {
                               PAIR(CpuBackend, Dynarmic, tr("Dynarmic")),
                               PAIR(CpuBackend, Nce, tr("NCE")),
+                          }});
+    translations->insert({Settings::EnumMetadata<Settings::CpuCoreConfig>::Index(),
+                          {
+                              PAIR(CpuCoreConfig, AllCores, tr("All Cores")),
+                              PAIR(CpuCoreConfig, EfficiencyOnly, tr("Efficiency Only")),
+                              PAIR(CpuCoreConfig, PerformanceOnly, tr("Performance Only")),
+                              PAIR(CpuCoreConfig, Custom, tr("Custom")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::FullscreenMode>::Index(),
                           {

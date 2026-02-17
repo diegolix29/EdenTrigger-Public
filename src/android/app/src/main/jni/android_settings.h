@@ -127,6 +127,10 @@ namespace AndroidSettings {
                                                      Settings::Category::Overlay,
                                                      Settings::Specialization::Default, true, true,
                                                      &show_performance_overlay};
+        Settings::Setting<bool> show_cpu_temperature{linkage, false, "show_cpu_temperature",
+                                                     Settings::Category::Overlay,
+                                                     Settings::Specialization::Default, true, true,
+                                                     &show_performance_overlay};
         Settings::Setting<Settings::TemperatureUnits> bat_temperature_unit{linkage,
                                                                            Settings::TemperatureUnits::Celsius,
                                                                            "bat_temperature_unit",
@@ -206,6 +210,14 @@ namespace AndroidSettings {
                                                         "enable_quick_settings",
                                                         Settings::Category::Android, Settings::Specialization::Default, true,
                                                       false};
+        Settings::Setting<bool> enable_memory_flush{linkage, false,
+                                                         "enable_memory_flush",
+                                                         Settings::Category::Android, Settings::Specialization::Default, true,
+                                                       false};
+        Settings::Setting<bool> show_memory_flush_button{linkage, false,
+                                                           "show_memory_flush_button",
+                                                           Settings::Category::Android, Settings::Specialization::Default, true,
+                                                         false};
     };
 
     extern Values values;

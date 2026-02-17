@@ -13,6 +13,7 @@
 #include "common/polyfill_thread.h"
 #include "common/thread.h"
 #include "core/hardware_properties.h"
+#include "common/settings.h"
 
 namespace Common {
 class Event;
@@ -42,6 +43,11 @@ public:
     /// Sets if emulation is using an asynchronous GPU.
     void SetAsyncGpu(bool is_async) {
         is_async_gpu = is_async;
+    }
+
+    /// Sets the CPU core configuration.
+    void SetCpuCoreConfig(Settings::CpuCoreConfig config) {
+        cpu_core_config = config;
     }
 
     void OnGpuReady() {
@@ -96,6 +102,7 @@ private:
 
     bool is_async_gpu{};
     bool is_multicore{};
+    Settings::CpuCoreConfig cpu_core_config{Settings::CpuCoreConfig::AllCores};
     std::atomic<std::size_t> current_core{};
     std::size_t idle_count{};
     std::size_t num_cores{};

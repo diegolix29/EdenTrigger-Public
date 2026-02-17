@@ -45,6 +45,7 @@ void ConfigureCpu::SetConfiguration() {}
 void ConfigureCpu::Setup(const ConfigurationShared::Builder& builder) {
     auto* accuracy_layout = ui->widget_accuracy->layout();
     auto* backend_layout = ui->widget_backend->layout();
+    auto* core_config_layout = ui->widget_core_config->layout();
     auto* unsafe_layout = ui->unsafe_widget->layout();
     std::map<u32, QWidget*> unsafe_hold{};
 
@@ -76,6 +77,9 @@ void ConfigureCpu::Setup(const ConfigurationShared::Builder& builder) {
         } else if (setting->Id() == Settings::values.cpu_backend.Id()) {
             backend_layout->addWidget(widget);
             backend_combobox = widget->combobox;
+        } else if (setting->Id() == Settings::values.cpu_core_config.Id()) {
+            core_config_layout->addWidget(widget);
+            core_config_combobox = widget->combobox;
         } else if (setting->Id() == Settings::values.fast_cpu_time.Id()
             || setting->Id() == Settings::values.vtable_bouncing.Id()
             || setting->Id() == Settings::values.cpu_ticks.Id()) {

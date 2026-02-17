@@ -217,6 +217,15 @@ abstract class SettingsItem(
                 )
             )
             put(
+                SingleChoiceSetting(
+                    IntSetting.CPU_CORE_CONFIG,
+                    titleId = R.string.cpu_core_config,
+                    descriptionId = R.string.cpu_core_config_description,
+                    choicesId = R.array.cpuCoreConfigNames,
+                    valuesId = R.array.cpuCoreConfigValues
+                )
+            )
+            put(
                 SwitchSetting(
                     BooleanSetting.PICTURE_IN_PICTURE,
                     titleId = R.string.picture_in_picture,
@@ -483,6 +492,13 @@ abstract class SettingsItem(
                     BooleanSetting.SHOW_BAT_TEMPERATURE,
                     R.string.show_bat_temperature,
                     descriptionId = 0
+                )
+            )
+            put(
+                SwitchSetting(
+                    BooleanSetting.SHOW_CPU_TEMPERATURE,
+                    R.string.show_cpu_temperature,
+                    descriptionId = R.string.show_cpu_temperature_description
                 )
             )
             put(

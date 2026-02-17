@@ -334,6 +334,20 @@
         <item>4</item>
     </integer-array>
 
+    <string-array name="cpuCoreConfigNames">
+        <item>@string/cpu_core_all</item>
+        <item>@string/cpu_core_efficiency</item>
+        <item>@string/cpu_core_performance</item>
+        <item>@string/cpu_core_custom</item>
+    </string-array>
+
+    <integer-array name="cpuCoreConfigValues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+    </integer-array>
+
     <string-array name="gamepadButtons">
         <item>A</item>
         <item>B</item>

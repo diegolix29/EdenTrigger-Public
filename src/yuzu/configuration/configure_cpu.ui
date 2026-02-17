@@ -90,6 +90,43 @@
       </widget>
      </item>
      <item>
+      <widget class="QGroupBox" name="core_config_group">
+       <property name="title">
+        <string>CPU Core Configuration</string>
+       </property>
+       <layout class="QVBoxLayout">
+        <item>
+         <widget class="QWidget" name="widget_core_config" native="true">
+          <layout class="QVBoxLayout" name="core_config_layout">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_core_config_description">
+          <property name="text">
+           <string>Select which CPU cores to use for emulation.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="unsafe_group">
        <property name="title">
         <string>Unsafe CPU Optimization Settings</string>

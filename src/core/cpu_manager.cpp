@@ -24,7 +24,24 @@ CpuManager::CpuManager(System& system_) : system{system_} {}
 CpuManager::~CpuManager() = default;
 
 void CpuManager::Initialize() {
-    num_cores = is_multicore ? Core::Hardware::NUM_CPU_CORES : 1;
+    std::size_t active_cores = Core::Hardware::NUM_CPU_CORES;
+
+    switch (cpu_core_config) {
+    case Settings::CpuCoreConfig::AllCores:
+        active_cores = Core::Hardware::NUM_CPU_CORES;
+        break;
+    case Settings::CpuCoreConfig::EfficiencyOnly:
+        active_cores = 2; // Use first 2 cores (typically efficiency cores)
+        break;
+    case Settings::CpuCoreConfig::PerformanceOnly:
+        active_cores = 4; // Use first 4 cores (typically performance cores)
+        break;
+    case Settings::CpuCoreConfig::Custom:
+        active_cores = 3; // Default custom configuration
+        break;
+    }
+
+    num_cores = is_multicore ? active_cores : 1;
     gpu_barrier = std::make_unique<Common::Barrier>(num_cores + 1);
     for (std::size_t core = 0; core < num_cores; core++)
         core_data[core].host_thread = std::jthread([this, core](std::stop_token token) { RunThread(token, core); });

@@ -11,6 +11,7 @@ import org.yuzu.yuzu_emu.utils.NativeConfig
 enum class IntSetting(override val key: String) : AbstractIntSetting {
     CPU_BACKEND("cpu_backend"),
     CPU_ACCURACY("cpu_accuracy"),
+    CPU_CORE_CONFIG("cpu_core_config"),
     REGION_INDEX("region_index"),
     LANGUAGE_INDEX("language_index"),
     RENDERER_BACKEND("backend"),

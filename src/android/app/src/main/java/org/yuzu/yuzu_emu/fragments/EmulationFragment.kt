@@ -72,6 +72,7 @@ import org.yuzu.yuzu_emu.databinding.FragmentEmulationBinding
 import org.yuzu.yuzu_emu.dialogs.QuickSettings
 import org.yuzu.yuzu_emu.features.input.NativeInput
 import org.yuzu.yuzu_emu.features.settings.model.BooleanSetting
+import org.yuzu.yuzu_emu.features.settings.model.MemoryFlushSettings
 import org.yuzu.yuzu_emu.features.settings.model.IntSetting
 import org.yuzu.yuzu_emu.features.settings.model.Settings
 import org.yuzu.yuzu_emu.features.settings.model.Settings.EmulationOrientation
@@ -83,6 +84,7 @@ import org.yuzu.yuzu_emu.model.EmulationViewModel
 import org.yuzu.yuzu_emu.model.Game
 import org.yuzu.yuzu_emu.overlay.model.OverlayControl
 import org.yuzu.yuzu_emu.overlay.model.OverlayLayout
+import org.yuzu.yuzu_emu.overlay.MemoryFlushOverlayButton
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import org.yuzu.yuzu_emu.utils.FileUtil
 import org.yuzu.yuzu_emu.utils.GameHelper
@@ -145,6 +147,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     var shouldUseCustom = false
     private var isQuickSettingsMenuOpen = false
     private val quickSettings = QuickSettings(this)
+    private var memoryFlushButton: MemoryFlushOverlayButton? = null
 
     private val loadAmiiboLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -840,6 +843,9 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
 
         addQuickSettings()
 
+        // Initialize memory flush button
+        initializeMemoryFlushButton()
+
         binding.drawerLayout.addDrawerListener(object : DrawerListener {
             override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
                 // no op
@@ -1115,6 +1121,29 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
 
             quickSettings.addDivider(container)
 
+            // Memory Flush Settings
+            quickSettings.addCustomToggle(
+                R.string.enable_memory_flush,
+                MemoryFlushSettings.isMemoryFlushEnabled(),
+                false,
+                container
+            ) { enabled ->
+                MemoryFlushSettings.setMemoryFlushEnabled(enabled)
+                updateMemoryFlushButtonVisibility()
+            }
+
+            quickSettings.addCustomToggle(
+                R.string.show_memory_flush_button,
+                MemoryFlushSettings.shouldShowMemoryFlushButton(),
+                false,
+                container
+            ) { enabled ->
+                MemoryFlushSettings.setShowMemoryFlushButton(enabled)
+                updateMemoryFlushButtonVisibility()
+            }
+
+            quickSettings.addDivider(container)
+
             quickSettings.addIntSetting(
                 R.string.renderer_accuracy,
                 container,
@@ -1149,6 +1178,8 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 R.array.rendererAntiAliasingValues
             )
         }
+
+        updateMemoryFlushButtonVisibility()
     }
 
     private fun openQuickSettingsMenu() {
@@ -1414,6 +1445,24 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                                     celsiusToFahrenheit(batteryTemp)
                                 )
                             )
+                        }
+                    }
+
+                    if (BooleanSetting.SHOW_CPU_TEMPERATURE.getBoolean(needsGlobal)) {
+                        if (sb.isNotEmpty()) sb.append(" | ")
+                        val cpuTemp = org.yuzu.yuzu_emu.utils.TemperatureMonitor.getCpuTemperature()
+                        if (cpuTemp > 0) {
+                            when (IntSetting.BAT_TEMPERATURE_UNIT.getInt(needsGlobal)) {
+                                0 -> sb.append(String.format("CPU: %.0f°C", cpuTemp))
+                                1 -> sb.append(
+                                    String.format(
+                                        "CPU: %.0f°F",
+                                        celsiusToFahrenheit(cpuTemp)
+                                    )
+                                )
+                            }
+                        } else {
+                            sb.append("CPU: N/A")
                         }
                     }
 
@@ -2313,5 +2362,34 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         if (!BooleanSetting.SHOW_INPUT_OVERLAY.getBoolean()) return
         controllerInputReceived = false
         toggleOverlay(true)
+    }
+
+    private fun initializeMemoryFlushButton() {
+        try {
+            memoryFlushButton = binding.memoryFlushButton
+            memoryFlushButton?.updateVisibility()
+            memoryFlushButton?.startBackgroundMemoryFlush()
+        } catch (e: Exception) {
+            // If memory flush button initialization fails, log error but continue
+            Log.error("[EmulationFragment] Failed to initialize memory flush button: ${e.message}")
+        }
+    }
+
+    fun updateMemoryFlushButtonVisibility() {
+        try {
+            memoryFlushButton?.updateVisibility()
+            // Restart background memory flush with new settings
+            memoryFlushButton?.stopBackgroundMemoryFlush()
+            memoryFlushButton?.startBackgroundMemoryFlush()
+        } catch (e: Exception) {
+            // If updating visibility fails, log error but continue
+            Log.error("[EmulationFragment] Failed to update memory flush button visibility: ${e.message}")
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Stop background memory flush when fragment is destroyed
+        memoryFlushButton?.stopBackgroundMemoryFlush()
     }
 }

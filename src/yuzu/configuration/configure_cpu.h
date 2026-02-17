@@ -55,4 +55,5 @@ private:
 
     QComboBox* accuracy_combobox;
     QComboBox* backend_combobox;
+    QComboBox* core_config_combobox;
 };
