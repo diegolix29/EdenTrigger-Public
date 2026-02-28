@@ -1,21 +1,21 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2023 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include <mbedtls/sha256.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
 
-#include "common/scope_exit.h"
 #include "core/hle/kernel/k_process.h"
 
 #include "core/hle/service/cmif_serialization.h"
-#include "core/hle/service/ipc_helpers.h"
 #include "core/hle/service/ro/ro.h"
 #include "core/hle/service/ro/ro_nro_utils.h"
 #include "core/hle/service/ro/ro_results.h"
 #include "core/hle/service/ro/ro_types.h"
 #include "core/hle/service/server_manager.h"
+#include "core/hle/service/service.h"
 
 namespace Service::RO {
 
@@ -176,12 +176,11 @@ struct ProcessContext {
         // Calculate hash.
         Sha256Hash hash;
         {
-            const u64 size = nro_header->GetSize();
-
+            const u64 size = nro_header->m_size;
             std::vector<u8> nro_data(size);
             m_process->GetMemory().ReadBlock(base_address, nro_data.data(), size);
-
-            mbedtls_sha256(nro_data.data(), size, hash.data(), 0);
+            u32 hash_len = 0;
+            EVP_Digest(nro_data.data(), nro_data.size(), hash.data(), &hash_len, EVP_sha256(), nullptr);
         }
 
         for (size_t i = 0; i < MaxNrrInfos; i++) {
@@ -203,9 +202,7 @@ struct ProcessContext {
         R_THROW(RO::ResultNotAuthorized);
     }
 
-    Result ValidateNro(ModuleId* out_module_id, u64* out_rx_size, u64* out_ro_size,
-                       u64* out_rw_size, u64 base_address, u64 expected_nro_size,
-                       u64 expected_bss_size) {
+    Result ValidateNro(ModuleId* out_module_id, u64* out_rx_size, u64* out_ro_size, u64* out_rw_size, u64 base_address, u64 expected_nro_size, u64 expected_bss_size) {
         // Ensure we have a process to work on.
         R_UNLESS(m_process != nullptr, RO::ResultInvalidProcess);
 
@@ -214,17 +211,17 @@ struct ProcessContext {
         m_process->GetMemory().ReadBlock(base_address, std::addressof(header), sizeof(header));
 
         // Validate header.
-        R_UNLESS(header.IsMagicValid(), RO::ResultInvalidNro);
+        R_UNLESS(header.m_magic == NRO_HEADER_MAGIC, RO::ResultInvalidNro);
 
         // Read sizes from header.
-        const u64 nro_size = header.GetSize();
-        const u64 text_ofs = header.GetTextOffset();
-        const u64 text_size = header.GetTextSize();
-        const u64 ro_ofs = header.GetRoOffset();
-        const u64 ro_size = header.GetRoSize();
-        const u64 rw_ofs = header.GetRwOffset();
-        const u64 rw_size = header.GetRwSize();
-        const u64 bss_size = header.GetBssSize();
+        const u64 nro_size = header.m_size;
+        const u64 text_ofs = header.m_text_offset;
+        const u64 text_size = header.m_text_size;
+        const u64 ro_ofs = header.m_ro_offset;
+        const u64 ro_size = header.m_ro_size;
+        const u64 rw_ofs = header.m_rw_offset;
+        const u64 rw_size = header.m_rw_size;
+        const u64 bss_size = header.m_bss_size;
 
         // Validate sizes meet expected.
         R_UNLESS(nro_size == expected_nro_size, RO::ResultInvalidNro);
@@ -250,7 +247,7 @@ struct ProcessContext {
         R_TRY(this->ValidateHasNroHash(base_address, std::addressof(header)));
 
         // Check if NRO has already been loaded.
-        const ModuleId* module_id = header.GetModuleId();
+        const ModuleId* module_id = std::addressof(header.m_module_id);
         R_UNLESS(R_FAILED(this->GetNroInfoByModuleId(nullptr, module_id)), RO::ResultAlreadyLoaded);
 
         // Apply patches to NRO.

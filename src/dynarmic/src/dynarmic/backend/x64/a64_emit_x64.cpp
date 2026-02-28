@@ -76,18 +76,14 @@ A64EmitX64::BlockDescriptor A64EmitX64::Emit(IR::Block& block) noexcept {
     }
 
     code.EnableWriting();
-    const boost::container::static_vector<HostLoc, 28> gpr_order = [this] {
-        boost::container::static_vector<HostLoc, 28> gprs{any_gpr};
-        if (conf.fastmem_pointer) {
-            gprs.erase(std::find(gprs.begin(), gprs.end(), HostLoc::R13));
-        }
-        if (conf.page_table) {
-            gprs.erase(std::find(gprs.begin(), gprs.end(), HostLoc::R14));
-        }
+    new (&this->reg_alloc) RegAlloc{[this] {
+        std::bitset<32> gprs = any_gpr;
+        if (conf.fastmem_pointer)
+            gprs.reset(size_t(HostLoc::R13));
+        if (conf.page_table)
+            gprs.reset(size_t(HostLoc::R14));
         return gprs;
-    }();
-
-    new (&this->reg_alloc) RegAlloc{gpr_order, any_xmm};
+    }(), any_xmm};
     A64EmitContext ctx{conf, reg_alloc, block};
 
     // Start emitting.
@@ -188,7 +184,7 @@ void A64EmitX64::ClearFastDispatchTable() {
 
 void A64EmitX64::GenTerminalHandlers() {
     // PC ends up in rcx, location_descriptor ends up in rbx
-    static_assert(std::find(ABI_ALL_CALLEE_SAVE.begin(), ABI_ALL_CALLEE_SAVE.end(), HostLoc::R12) != ABI_ALL_CALLEE_SAVE.end());
+    //static_assert(ABI_ALL_CALLEE_SAVE.test(size_t(HostLoc::R12)));
     const auto calculate_location_descriptor = [this] {
         // This calculation has to match up with A64::LocationDescriptor::UniqueHash
         // TODO: Optimization is available here based on known state of fpcr.
@@ -619,16 +615,6 @@ std::string A64EmitX64::LocationDescriptorToFriendlyName(const IR::LocationDescr
 }
 
 namespace {
-void EmitTerminalImpl(A64EmitX64& e, IR::Term::Interpret terminal, IR::LocationDescriptor, bool) {
-    e.code.SwitchMxcsrOnExit();
-    Devirtualize<&A64::UserCallbacks::InterpreterFallback>(e.conf.callbacks).EmitCall(e.code, [&](RegList param) {
-        e.code.mov(param[0], A64::LocationDescriptor{terminal.next}.PC());
-        e.code.mov(qword[e.code.ABI_JIT_PTR + offsetof(A64JitState, pc)], param[0]);
-        e.code.mov(param[1].cvt32(), terminal.num_instructions);
-    });
-    e.code.ReturnFromRunCode(true);  // TODO: Check cycles
-}
-
 void EmitTerminalImpl(A64EmitX64& e, IR::Term::ReturnToDispatch, IR::LocationDescriptor, bool) {
     e.code.ReturnFromRunCode();
 }

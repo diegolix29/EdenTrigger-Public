@@ -47,7 +47,10 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent)
     INSERT(Settings, login_share_applet_mode, tr("Login share"), QString());
     INSERT(Settings, wifi_web_auth_applet_mode, tr("Wifi web auth"), QString());
     INSERT(Settings, my_page_applet_mode, tr("My page"), QString());
-    INSERT(Settings, enable_overlay, tr("Enable Overlay Applet"), QString());
+    INSERT(Settings,
+        enable_overlay,
+        tr("Enable Overlay Applet"),
+        tr("Enables Horizon\'s built-in overlay applet. Press and hold the home button for 1 second to show it."));
 
     // Audio
     INSERT(Settings, sink_id, tr("Output Engine:"), QString());
@@ -348,6 +351,12 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent)
            fix_bloom_effects,
            tr("Fix bloom effects"),
            tr("Removes bloom in Burnout."));
+
+    INSERT(Settings,
+           rescale_hack,
+           tr("Enable Legacy Rescale Pass"),
+           tr("May fix rescale issues in some games by relying on behavior from the previous implementation.\n"
+              "Legacy behavior workaround that fixes line artifacts on AMD and Intel GPUs, and grey texture flicker on Nvidia GPUs in Luigis Mansion 3."));
 
     // Renderer (Extensions)
     INSERT(Settings, dyna_state, tr("Extended Dynamic State"),
@@ -654,7 +663,8 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent)
              PAIR(Language, ChineseSimplified, tr("Simplified Chinese")),
              PAIR(Language, ChineseTraditional, tr("Traditional Chinese (正體中文)")),
              PAIR(Language, PortugueseBrazilian, tr("Brazilian Portuguese (português do Brasil)")),
-             PAIR(Language, Serbian, tr("Serbian (српски)")),
+             PAIR(Language, Polish, tr("Polish (polska)")),
+             PAIR(Language, Thai, tr("Thai (แบบไทย)")),
          }});
     translations->insert({Settings::EnumMetadata<Settings::Region>::Index(),
                           {

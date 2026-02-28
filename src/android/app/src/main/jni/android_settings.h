@@ -56,6 +56,7 @@ namespace AndroidSettings {
 
         Settings::Setting<s32> theme{linkage, 0, "theme", Settings::Category::Android};
         Settings::Setting<s32> theme_mode{linkage, -1, "theme_mode", Settings::Category::Android};
+        Settings::Setting<s32> static_theme_color{linkage, 5, "static_theme_color", Settings::Category::Android};
         Settings::Setting<bool> black_backgrounds{linkage, false, "black_backgrounds",
                                                   Settings::Category::Android};
         Settings::Setting<s32> app_language{linkage, 0, "app_language", Settings::Category::Android};
@@ -65,6 +66,8 @@ namespace AndroidSettings {
                                                   Settings::Category::Android};
         Settings::Setting<bool> enable_qlaunch_button{linkage, false, "enable_qlaunch_button",
                                                   Settings::Category::Android};
+        Settings::Setting<bool> invert_confirm_back_controller_buttons{
+            linkage, false, "invert_confirm_back_controller_buttons", Settings::Category::Android};
 
         // Input/performance overlay settings
         std::vector<OverlayControlData> overlay_control_data;

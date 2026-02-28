@@ -41,9 +41,6 @@ if (NOT TARGET enet::enet)
     add_library(enet::enet ALIAS enet)
 endif()
 
-# mbedtls
-AddJsonPackage(mbedtls)
-
 # stb
 add_library(stb stb/stb_dxt.cpp)
 target_include_directories(stb PUBLIC ./stb)
@@ -136,8 +133,7 @@ if(ENABLE_CUBEB)
     endif()
 endif()
 
-# find SDL2 exports a bunch of variables that are needed, so its easier to do this outside of the YUZU_find_package
-if (ENABLE_SDL2)
+if (NOT ANDROID)
     if (YUZU_USE_EXTERNAL_SDL2)
         message(STATUS "Using SDL2 from externals.")
         if (NOT WIN32)
@@ -234,9 +230,7 @@ if (VulkanMemoryAllocator_ADDED)
 endif()
 
 # httplib
-if (ENABLE_WEB_SERVICE OR ENABLE_UPDATE_CHECKER OR USE_DISCORD_PRESENCE OR ENABLE_OPENSSL)
-    AddJsonPackage(httplib)
-endif()
+AddJsonPackage(httplib)
 
 # cpp-jwt
 if (ENABLE_WEB_SERVICE OR ENABLE_UPDATE_CHECKER)
@@ -407,12 +401,10 @@ if (APPLE)
     # moltenvk
     if (NOT YUZU_USE_BUNDLED_MOLTENVK)
         find_library(MOLTENVK_LIBRARY MoltenVK)
-    else()
-        unset(MOLTENVK_LIBRARY)
     endif()
 
     # TODO: kosmickrisp?
-    if (NOT MOLTENVK_LIBRARY)
+    if (NOT MOLTENVK_LIBRARY OR YUZU_USE_BUNDLED_MOLTENVK)
         AddJsonPackage(moltenvk)
 
         set(MOLTENVK_LIBRARY "${moltenvk_SOURCE_DIR}/MoltenVK/dylib/macOS/libMoltenVK.dylib" CACHE STRING "" FORCE)

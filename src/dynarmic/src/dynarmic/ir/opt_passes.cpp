@@ -638,43 +638,6 @@ static void A64GetSetElimination(IR::Block& block) {
     }
 }
 
-static void A64MergeInterpretBlocksPass(IR::Block& block, A64::UserCallbacks* cb) {
-    const auto is_interpret_instruction = [cb](A64::LocationDescriptor location) {
-        const auto instruction = cb->MemoryReadCode(location.PC());
-        if (!instruction)
-            return false;
-
-        IR::Block new_block{location};
-        A64::TranslateSingleInstruction(new_block, location, *instruction);
-
-        if (!new_block.Instructions().empty())
-            return false;
-
-        const IR::Terminal terminal = new_block.GetTerminal();
-        if (auto term = boost::get<IR::Term::Interpret>(&terminal)) {
-            return term->next == location;
-        }
-
-        return false;
-    };
-
-    IR::Terminal terminal = block.GetTerminal();
-    auto term = boost::get<IR::Term::Interpret>(&terminal);
-    if (!term)
-        return;
-
-    A64::LocationDescriptor location{term->next};
-    size_t num_instructions = 1;
-
-    while (is_interpret_instruction(location.AdvancePC(static_cast<int>(num_instructions * 4)))) {
-        num_instructions++;
-    }
-
-    term->num_instructions = num_instructions;
-    block.ReplaceTerminal(terminal);
-    block.CycleCount() += num_instructions - 1;
-}
-
 using Op = Dynarmic::IR::Opcode;
 
 static IR::Value Value(bool is_32_bit, u64 value) {
@@ -824,24 +787,30 @@ static void FoldCountLeadingZeros(IR::Inst& inst, bool is_32_bit) {
 /// Folds division operations based on the following:
 ///
 /// 1. x / 0 -> 0 (NOTE: This is an ARM-specific behavior defined in the architecture reference manual)
-/// 2. imm_x / imm_y -> result
-/// 3. x / 1 -> x
+/// 2a. 0x8000_0000 / 0xFFFF_FFFF -> 0x8000_0000 (NOTE: More ARM bullshit)
+/// 2b. 0x8000_0000_0000_0000 / 0xFFFF_FFFF_FFFF_FFFF -> 0x8000_0000_0000_0000
+/// 3. imm_x / imm_y -> result
+/// 4. x / 1 -> x
 ///
 static void FoldDivide(IR::Inst& inst, bool is_32_bit, bool is_signed) {
     const auto rhs = inst.GetArg(1);
-
-    if (rhs.IsZero()) {
-        ReplaceUsesWith(inst, is_32_bit, 0);
-        return;
-    }
-
     const auto lhs = inst.GetArg(0);
-    if (lhs.IsImmediate() && rhs.IsImmediate()) {
+    if (lhs.IsZero() || rhs.IsZero()) {
+        ReplaceUsesWith(inst, is_32_bit, u64(0));
+   } else if (!is_32_bit && lhs.IsUnsignedImmediate(u64(1ULL << 63)) && rhs.IsUnsignedImmediate(u64(-1))) {
+       ReplaceUsesWith(inst, is_32_bit, u64(1ULL << 63));
+    } else if (is_32_bit && lhs.IsUnsignedImmediate(u32(1ULL << 31)) && rhs.IsUnsignedImmediate(u32(-1))) {
+        ReplaceUsesWith(inst, is_32_bit, u64(1ULL << 31));
+    } else if (lhs.IsImmediate() && rhs.IsImmediate()) {
         if (is_signed) {
-            const s64 result = lhs.GetImmediateAsS64() / rhs.GetImmediateAsS64();
-            ReplaceUsesWith(inst, is_32_bit, static_cast<u64>(result));
+            auto const dl = lhs.GetImmediateAsS64();
+            auto const dr = rhs.GetImmediateAsS64();
+            const s64 result = dl / dr;
+            ReplaceUsesWith(inst, is_32_bit, u64(result));
         } else {
-            const u64 result = lhs.GetImmediateAsU64() / rhs.GetImmediateAsU64();
+            auto const dl = lhs.GetImmediateAsU64();
+            auto const dr = rhs.GetImmediateAsU64();
+            const u64 result = dl / dr;
             ReplaceUsesWith(inst, is_32_bit, result);
         }
     } else if (rhs.IsUnsignedImmediate(1)) {
@@ -1503,9 +1472,6 @@ void Optimize(IR::Block& block, const A64::UserConfig& conf, const Optimization:
     if (conf.HasOptimization(OptimizationFlag::ConstProp)) {
         Optimization::ConstantPropagation(block);
         Optimization::DeadCodeElimination(block);
-    }
-    if (conf.HasOptimization(OptimizationFlag::MiscIROpt)) {
-        Optimization::A64MergeInterpretBlocksPass(block, conf.callbacks);
     }
     Optimization::IdentityRemovalPass(block);
     if (!conf.HasOptimization(OptimizationFlag::DisableVerification)) {

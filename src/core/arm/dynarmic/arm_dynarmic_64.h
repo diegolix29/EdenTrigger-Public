@@ -42,6 +42,9 @@ public:
     u64 MemoryRead64(u64 vaddr) override;
     Dynarmic::A64::Vector MemoryRead128(u64 vaddr) override;
     std::optional<u32> MemoryReadCode(u64 vaddr) override;
+    void InstructionSynchronizationBarrierRaised() override {
+        last_code_addr = 0; //reset back, force refetch
+    }
     void MemoryWrite8(u64 vaddr, u8 value) override;
     void MemoryWrite16(u64 vaddr, u16 value) override;
     void MemoryWrite32(u64 vaddr, u32 value) override;
@@ -52,7 +55,6 @@ public:
     bool MemoryWriteExclusive32(u64 vaddr, std::uint32_t value, std::uint32_t expected) override;
     bool MemoryWriteExclusive64(u64 vaddr, std::uint64_t value, std::uint64_t expected) override;
     bool MemoryWriteExclusive128(u64 vaddr, Dynarmic::A64::Vector value, Dynarmic::A64::Vector expected) override;
-    void InterpreterFallback(u64 pc, std::size_t num_instructions) override;
     void InstructionCacheOperationRaised(Dynarmic::A64::InstructionCacheOperation op, u64 value) override;
     void ExceptionRaised(u64 pc, Dynarmic::A64::Exception exception) override;
     void CallSVC(u32 svc) override;

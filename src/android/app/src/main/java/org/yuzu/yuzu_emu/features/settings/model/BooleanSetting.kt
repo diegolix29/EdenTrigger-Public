@@ -25,6 +25,7 @@ enum class BooleanSetting(override val key: String) : AbstractBooleanSetting {
     RENDERER_ASYNCHRONOUS_SHADERS("use_asynchronous_shaders"),
     RENDERER_REACTIVE_FLUSHING("use_reactive_flushing"),
     ENABLE_BUFFER_HISTORY("enable_buffer_history"),
+    USE_OPTIMIZED_VERTEX_BUFFERS("use_optimized_vertex_buffers"),
     SYNC_MEMORY_OPERATIONS("sync_memory_operations"),
     BUFFER_REORDER_DISABLE("disable_buffer_reorder"),
     RENDERER_DEBUG("debug"),
@@ -37,6 +38,7 @@ enum class BooleanSetting(override val key: String) : AbstractBooleanSetting {
     PICTURE_IN_PICTURE("picture_in_picture"),
     USE_CUSTOM_RTC("custom_rtc_enabled"),
     BLACK_BACKGROUNDS("black_backgrounds"),
+    INVERT_CONFIRM_BACK_CONTROLLER_BUTTONS("invert_confirm_back_controller_buttons"),
 
     ENABLE_FOLDER_BUTTON("enable_folder_button"),
     ENABLE_QLAUNCH_BUTTON("enable_qlaunch_button"),

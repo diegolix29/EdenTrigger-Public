@@ -389,6 +389,13 @@ abstract class SettingsItem(
             )
             put(
                 SwitchSetting(
+                    BooleanSetting.INVERT_CONFIRM_BACK_CONTROLLER_BUTTONS,
+                    titleId = R.string.invert_confirm_back_controller_buttons,
+                    descriptionId = R.string.invert_confirm_back_controller_buttons_description
+                )
+            )
+            put(
+                SwitchSetting(
                     BooleanSetting.SHOW_INPUT_OVERLAY,
                     titleId = R.string.show_input_overlay,
                     descriptionId = R.string.show_input_overlay_description
@@ -806,6 +813,13 @@ abstract class SettingsItem(
             )
             put(
                 SwitchSetting(
+                    BooleanSetting.USE_OPTIMIZED_VERTEX_BUFFERS,
+                    titleId = R.string.use_optimized_vertex_buffers,
+                    descriptionId = R.string.use_optimized_vertex_buffers_description
+                )
+            )
+            put(
+                SwitchSetting(
                     BooleanSetting.SYNC_MEMORY_OPERATIONS,
                     titleId = R.string.sync_memory_operations,
                     descriptionId = R.string.sync_memory_operations_description
@@ -912,7 +926,7 @@ abstract class SettingsItem(
             )
             put(
                 SpinBoxSetting(
-                    IntSetting.DEBUG_KNOBS,
+                    ShortSetting.DEBUG_KNOBS,
                     titleId = R.string.debug_knobs,
                     descriptionId = R.string.debug_knobs_description,
                     valueHint = R.string.debug_knobs_hint,

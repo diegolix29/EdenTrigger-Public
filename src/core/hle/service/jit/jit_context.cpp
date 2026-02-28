@@ -56,6 +56,9 @@ public:
         }
         return cached_code_page.inst[(vaddr & Core::Memory::YUZU_PAGEMASK) / sizeof(u32)];
     }
+    void InstructionSynchronizationBarrierRaised() override {
+        last_code_addr = 0; //reset back, force refetch
+    }
     u8 MemoryRead8(u64 vaddr) override {
         return ReadMemory<u8>(vaddr);
     }
@@ -116,7 +119,6 @@ public:
 
     void CallSVC(u32 swi) override;
     void ExceptionRaised(u64 pc, Dynarmic::A64::Exception exception) override;
-    void InterpreterFallback(u64 pc, size_t num_instructions) override;
 
     void AddTicks(u64 ticks) override {}
     u64 GetTicksRemaining() override {
@@ -429,11 +431,6 @@ void DynarmicCallbacks64::CallSVC(u32 swi) {
 
 void DynarmicCallbacks64::ExceptionRaised(u64 pc, Dynarmic::A64::Exception exception) {
     LOG_CRITICAL(Service_JIT, "Illegal operation PC @ {:08x}", pc);
-    parent.jit->HaltExecution();
-}
-
-void DynarmicCallbacks64::InterpreterFallback(u64 pc, size_t num_instructions) {
-    LOG_CRITICAL(Service_JIT, "Unimplemented instruction PC @ {:08x}", pc);
     parent.jit->HaltExecution();
 }
 

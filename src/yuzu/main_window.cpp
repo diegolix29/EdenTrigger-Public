@@ -149,9 +149,7 @@ static FileSys::VirtualFile VfsDirectoryCreateFileWrapper(const FileSys::Virtual
 #include "video_core/renderer_base.h"
 #include "video_core/shader_notify.h"
 
-#ifdef HAVE_SDL2
 #include <SDL.h>
-#endif
 
 #include <boost/container/flat_set.hpp>
 
@@ -222,7 +220,6 @@ struct TitlebarFilter final : QObject {
             case QEvent::WinIdChange:
             case QEvent::Show:
             case QEvent::ShowToParent:
-            case QEvent::Polish:
             case QEvent::WindowStateChange:
             case QEvent::ZOrderChange:
                 ApplyDarkToTopLevel(w, dark);
@@ -602,7 +599,7 @@ MainWindow::MainWindow(bool has_broken_vulkan)
         VkDeviceInfo::PopulateRecords(vk_device_records, this->window()->windowHandle());
     }
 
-#if defined(HAVE_SDL2) && !defined(_WIN32)
+#if !defined(_WIN32)
     SDL_InitSubSystem(SDL_INIT_VIDEO);
 
     // Set a screensaver inhibition reason string. Currently passed to DBus by SDL and visible to
@@ -1446,20 +1443,17 @@ void MainWindow::InitializeHotkeys() {
 
     connect_shortcut(QStringLiteral("Toggle Framerate Limit"), [this] {
         Settings::ToggleStandardMode();
-        const bool limited = Settings::values.use_speed_limit.GetValue();
-        m_fpsSuffix = limited ? QString{} : tr("Unlocked");
+        SetFPSSuffix();
     });
 
     connect_shortcut(QStringLiteral("Toggle Turbo Speed"), [this] {
         Settings::ToggleTurboMode();
-        const bool turbo = Settings::values.current_speed_mode.GetValue() == Settings::SpeedMode::Turbo;
-        m_fpsSuffix = turbo ? tr("Turbo") : QString{};
+        SetFPSSuffix();
     });
 
     connect_shortcut(QStringLiteral("Toggle Slow Speed"), [this] {
         Settings::ToggleSlowMode();
-        const bool slow = Settings::values.current_speed_mode.GetValue() == Settings::SpeedMode::Slow;
-        m_fpsSuffix = slow ? tr("Slow") : QString{};
+        SetFPSSuffix();
     });
 
     connect_shortcut(QStringLiteral("Toggle Renderdoc Capture"), [] {
@@ -1884,7 +1878,7 @@ void MainWindow::OnSigInterruptNotifierActivated() {
 void MainWindow::PreventOSSleep() {
 #ifdef _WIN32
     SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED);
-#elif defined(HAVE_SDL2)
+#else
     SDL_DisableScreenSaver();
 #endif
 }
@@ -1892,7 +1886,7 @@ void MainWindow::PreventOSSleep() {
 void MainWindow::AllowOSSleep() {
 #ifdef _WIN32
     SetThreadExecutionState(ES_CONTINUOUS);
-#elif defined(HAVE_SDL2)
+#else
     SDL_EnableScreenSaver();
 #endif
 }
@@ -2142,9 +2136,10 @@ void MainWindow::BootGame(const QString& filename, Service::AM::FrontendAppletPa
         game_list->hide();
         game_list_placeholder->hide();
     }
-    status_bar_update_timer.start(250);
+    status_bar_update_timer.start(500);
     renderer_status_button->setDisabled(true);
     refresh_button->setDisabled(true);
+    SetFPSSuffix();
 
     if (UISettings::values.hide_mouse || Settings::values.mouse_panning) {
         render_window->installEventFilter(render_window);
@@ -2209,16 +2204,19 @@ bool MainWindow::OnShutdownBegin() {
 
     AllowOSSleep();
 
-    // Disable unlimited frame rate
+    // Disable unlimited frame rate and turbo/slow modes
     Settings::values.use_speed_limit.SetValue(true);
+    Settings::values.current_speed_mode = Settings::SpeedMode::Standard;
 
     if (QtCommon::system->IsShuttingDown()) {
         return false;
     }
 
-    perf_overlay->hide();
-    perf_overlay->deleteLater();
-    perf_overlay = nullptr;
+    if (perf_overlay) {
+        perf_overlay->hide();
+        perf_overlay->deleteLater();
+        perf_overlay = nullptr;
+    }
 
     QtCommon::system->SetShuttingDown(true);
     discord_rpc->Pause();
@@ -4513,6 +4511,21 @@ void MainWindow::SetFirmwareVersion() {
 
     firmware_label->setText(QString::fromStdString(display_version));
     firmware_label->setToolTip(QString::fromStdString(display_title));
+}
+
+void MainWindow::SetFPSSuffix() {
+    switch (Settings::values.current_speed_mode.GetValue()) {
+    case Settings::SpeedMode::Slow:
+        m_fpsSuffix = tr("Slow");
+        break;
+    case Settings::SpeedMode::Turbo:
+        m_fpsSuffix = tr("Turbo");
+        break;
+    case Settings::SpeedMode::Standard:
+        const bool limited = Settings::values.use_speed_limit.GetValue();
+        m_fpsSuffix = limited ? QString{} : tr("Unlocked");
+        break;
+    }
 }
 
 bool MainWindow::SelectRomFSDumpTarget(const FileSys::ContentProvider& installed, u64 program_id,

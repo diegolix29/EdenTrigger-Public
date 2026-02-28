@@ -23,7 +23,6 @@ import org.yuzu.yuzu_emu.features.settings.model.ByteSetting
 import org.yuzu.yuzu_emu.features.settings.model.IntSetting
 import org.yuzu.yuzu_emu.features.settings.model.LongSetting
 import org.yuzu.yuzu_emu.features.settings.model.Settings
-import org.yuzu.yuzu_emu.features.settings.model.MemoryFlushSettings
 import org.yuzu.yuzu_emu.features.settings.model.Settings.MenuTag
 import org.yuzu.yuzu_emu.features.settings.model.ShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.StringSetting
@@ -109,7 +108,7 @@ class SettingsFragmentPresenter(
             MenuTag.SECTION_INPUT_PLAYER_SIX -> addInputPlayer(sl, 5)
             MenuTag.SECTION_INPUT_PLAYER_SEVEN -> addInputPlayer(sl, 6)
             MenuTag.SECTION_INPUT_PLAYER_EIGHT -> addInputPlayer(sl, 7)
-            MenuTag.SECTION_APP_SETTINGS -> addAppSettings(sl)
+            MenuTag.SECTION_APP_SETTINGS -> addThemeSettings(sl)
             MenuTag.SECTION_DEBUG -> addDebugSettings(sl)
             MenuTag.SECTION_FREEDRENO -> addFreedrenoSettings(sl)
             MenuTag.SECTION_APPLETS -> addAppletSettings(sl)
@@ -237,7 +236,6 @@ class SettingsFragmentPresenter(
             add(LongSetting.CUSTOM_RTC.key)
 
             add(HeaderSetting(R.string.cpu))
-            add(IntSetting.CPU_CORE_CONFIG.key)
             add(IntSetting.FAST_CPU_TIME.key)
             add(BooleanSetting.CORE_SYNC_CORE_SPEED.key)
 
@@ -280,6 +278,7 @@ class SettingsFragmentPresenter(
             add(BooleanSetting.RENDERER_FORCE_MAX_CLOCK.key)
             add(BooleanSetting.RENDERER_REACTIVE_FLUSHING.key)
             add(BooleanSetting.ENABLE_BUFFER_HISTORY.key)
+            add(BooleanSetting.USE_OPTIMIZED_VERTEX_BUFFERS.key)
 
             add(HeaderSetting(R.string.hacks))
 
@@ -319,7 +318,6 @@ class SettingsFragmentPresenter(
             add(BooleanSetting.SHOW_APP_RAM_USAGE.key)
             add(BooleanSetting.SHOW_SYSTEM_RAM_USAGE.key)
             add(BooleanSetting.SHOW_BAT_TEMPERATURE.key)
-            add(BooleanSetting.SHOW_CPU_TEMPERATURE.key)
             add(IntSetting.BAT_TEMPERATURE_UNIT.key)
             add(BooleanSetting.SHOW_POWER_INFO.key)
             add(BooleanSetting.SHOW_SHADERS_BUILDING.key)
@@ -1000,22 +998,6 @@ class SettingsFragmentPresenter(
             override fun reset() = setInt(this.defaultValue)
         }
 
-    private fun getStickDirections(
-        playerIndex: Int,
-        nativeAnalog: NativeAnalog
-    ): List<SettingsItem> {
-        val directions = listOf(
-            AnalogDirection.Up to R.string.up,
-            AnalogDirection.Down to R.string.down,
-            AnalogDirection.Left to R.string.left,
-            AnalogDirection.Right to R.string.right
-        )
-
-        return directions.map { (direction, titleId) ->
-            AnalogInputSetting(playerIndex, nativeAnalog, direction, titleId)
-        }
-    }
-
     private fun getExtraStickSettings(
         playerIndex: Int,
         nativeAnalog: NativeAnalog
@@ -1038,59 +1020,132 @@ class SettingsFragmentPresenter(
                 add(SliderSetting(modifierRangeSetting, R.string.modifier_range))
             }
         }
-
         return out
     }
 
-    private fun addAppSettings(sl: ArrayList<SettingsItem>) {
-        val themeMode: AbstractIntSetting = object : AbstractIntSetting {
-            override val key: String = IntSetting.THEME_MODE.key
+    private fun getStickDirections(player: Int, stick: NativeAnalog): List<AnalogInputSetting> =
+        listOf(
+            AnalogInputSetting(
+                player,
+                stick,
+                AnalogDirection.Up,
+                R.string.up
+            ),
+            AnalogInputSetting(
+                player,
+                stick,
+                AnalogDirection.Down,
+                R.string.down
+            ),
+            AnalogInputSetting(
+                player,
+                stick,
+                AnalogDirection.Left,
+                R.string.left
+            ),
+            AnalogInputSetting(
+                player,
+                stick,
+                AnalogDirection.Right,
+                R.string.right
+            )
+        )
 
-            override fun getInt(needsGlobal: Boolean): Int =
-                IntSetting.THEME_MODE.getInt()
-
-            override fun setInt(value: Int) {
-                IntSetting.THEME_MODE.setInt(value)
-                settingsViewModel.setShouldRecreate(true)
-            }
-
-            override val defaultValue: Int = IntSetting.THEME_MODE.defaultValue
-
-            override fun getValueAsString(needsGlobal: Boolean): String =
-                getInt(needsGlobal).toString()
-
-            override fun reset() = setInt(this.defaultValue)
-        }
-
-        val staticThemeColor: AbstractIntSetting = object : AbstractIntSetting {
-            override val key: String = Settings.PREF_STATIC_THEME_COLOR
-
-            override fun getInt(needsGlobal: Boolean): Int {
-                val preferences = PreferenceManager.getDefaultSharedPreferences(
-                    YuzuApplication.appContext
-                )
-                return preferences.getInt(Settings.PREF_STATIC_THEME_COLOR, 0)
-            }
-
-            override fun setInt(value: Int) {
-                val preferences = PreferenceManager.getDefaultSharedPreferences(
-                    YuzuApplication.appContext
-                )
-                preferences.edit()
-                    .putInt(Settings.PREF_STATIC_THEME_COLOR, value)
-                    .apply()
-                settingsViewModel.setShouldRecreate(true)
-            }
-
-            override val defaultValue: Int = 0
-
-            override fun getValueAsString(needsGlobal: Boolean): String =
-                getInt(needsGlobal).toString()
-
-            override fun reset() = setInt(this.defaultValue)
-        }
-
+    private fun addThemeSettings(sl: ArrayList<SettingsItem>) {
         sl.apply {
+            val theme: AbstractIntSetting = object : AbstractIntSetting {
+                override fun getInt(needsGlobal: Boolean): Int = IntSetting.THEME.getInt()
+                override fun setInt(value: Int) {
+                    IntSetting.THEME.setInt(value)
+                    settingsViewModel.setShouldRecreate(true)
+                }
+
+                override val key: String = IntSetting.THEME.key
+                override val isRuntimeModifiable: Boolean = IntSetting.THEME.isRuntimeModifiable
+                override fun getValueAsString(needsGlobal: Boolean): String =
+                    IntSetting.THEME.getValueAsString()
+
+                override val defaultValue: Int = IntSetting.THEME.defaultValue
+                override fun reset() = IntSetting.THEME.setInt(defaultValue)
+            }
+
+            add(HeaderSetting(R.string.app_settings))
+            add(IntSetting.APP_LANGUAGE.key)
+
+            if (NativeLibrary.isUpdateCheckerEnabled()) {
+                add(BooleanSetting.ENABLE_UPDATE_CHECKS.key)
+            }
+
+            add(BooleanSetting.ENABLE_QUICK_SETTINGS.key)
+            add(BooleanSetting.INVERT_CONFIRM_BACK_CONTROLLER_BUTTONS.key)
+
+            add(HeaderSetting(R.string.theme_and_color))
+
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(
+                    SingleChoiceSetting(
+                        theme,
+                        titleId = R.string.change_app_theme,
+                        choicesId = R.array.themeEntriesA12,
+                        valuesId = R.array.themeValuesA12
+                    )
+                )
+            } else {
+                add(
+                    SingleChoiceSetting(
+                        theme,
+                        titleId = R.string.change_app_theme,
+                        choicesId = R.array.themeEntries,
+                        valuesId = R.array.themeValues
+                    )
+                )
+            }
+
+            val themeMode: AbstractIntSetting = object : AbstractIntSetting {
+                override fun getInt(needsGlobal: Boolean): Int = IntSetting.THEME_MODE.getInt()
+                override fun setInt(value: Int) {
+                    IntSetting.THEME_MODE.setInt(value)
+                    settingsViewModel.setShouldRecreate(true)
+                }
+
+                override val key: String = IntSetting.THEME_MODE.key
+                override val isRuntimeModifiable: Boolean =
+                    IntSetting.THEME_MODE.isRuntimeModifiable
+
+                override fun getValueAsString(needsGlobal: Boolean): String =
+                    IntSetting.THEME_MODE.getValueAsString()
+
+                override val defaultValue: Int = IntSetting.THEME_MODE.defaultValue
+                override fun reset() {
+                    IntSetting.THEME_MODE.setInt(defaultValue)
+                    settingsViewModel.setShouldRecreate(true)
+                }
+            }
+
+            val staticThemeColor: AbstractIntSetting = object : AbstractIntSetting {
+                override fun getInt(needsGlobal: Boolean): Int =
+                    IntSetting.STATIC_THEME_COLOR.getInt(needsGlobal)
+
+                override fun setInt(value: Int) {
+                    IntSetting.STATIC_THEME_COLOR.setInt(value)
+                    settingsViewModel.setShouldRecreate(true)
+                }
+
+                override val key: String = IntSetting.STATIC_THEME_COLOR.key
+                override val isRuntimeModifiable: Boolean = true
+
+                override fun getValueAsString(needsGlobal: Boolean): String =
+                    IntSetting.STATIC_THEME_COLOR.getValueAsString(needsGlobal)
+
+                override val defaultValue: Any = IntSetting.STATIC_THEME_COLOR.defaultValue
+
+                override fun reset() {
+                    IntSetting.STATIC_THEME_COLOR.reset()
+                    settingsViewModel.setShouldRecreate(true)
+                }
+            }
+
             add(
                 SingleChoiceSetting(
                     themeMode,
@@ -1177,7 +1232,7 @@ class SettingsFragmentPresenter(
 
             add(HeaderSetting(R.string.general))
 
-            add(IntSetting.DEBUG_KNOBS.key)
+            add(ShortSetting.DEBUG_KNOBS.key)
 
             add(HeaderSetting(R.string.gpu_logging_header))
             add(BooleanSetting.GPU_LOGGING_ENABLED.key)

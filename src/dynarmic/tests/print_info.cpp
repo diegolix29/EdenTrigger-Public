@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /* This file is part of the dynarmic project.
@@ -34,7 +34,6 @@
 #include "dynarmic/frontend/A64/translate/impl/impl.h"
 #include "dynarmic/interface/A32/a32.h"
 #include "dynarmic/interface/A32/config.h"
-#include "dynarmic/interface/A32/disassembler.h"
 #include "dynarmic/ir/basic_block.h"
 #include "dynarmic/ir/opt_passes.h"
 
@@ -54,9 +53,7 @@ std::string_view GetNameOfA32Instruction(u32 instruction) {
 }
 
 std::string_view GetNameOfA64Instruction(u32 instruction) {
-    if (auto const decoder = A64::Decode<A64::TranslatorVisitor>(instruction))
-        return *A64::GetName<A64::TranslatorVisitor>(instruction);
-    return "<null>";
+    return *A64::GetName<A64::TranslatorVisitor>(instruction);
 }
 
 void PrintA32Instruction(u32 instruction) {
@@ -153,9 +150,6 @@ public:
         MemoryWrite32(vaddr + 4, static_cast<u32>(value >> 32));
     }
 
-    void InterpreterFallback(u32 pc, size_t num_instructions) override {
-        fmt::print("> InterpreterFallback({:08x}, {}) code = {:08x}\n", pc, num_instructions, *MemoryReadCode(pc));
-    }
     void CallSVC(std::uint32_t swi) override {
         fmt::print("> CallSVC({})\n", swi);
     }

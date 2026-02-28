@@ -49,35 +49,28 @@ if (YUZU_STATIC_ROOM)
 
     # disable e v e r y t h i n g
     set(ENABLE_QT OFF)
-    set(ENABLE_SDL2 OFF)
     set(YUZU_CMD OFF)
     set(ENABLE_CUBEB OFF)
     set(ENABLE_UPDATE_CHECKER OFF)
     set(USE_DISCORD_PRESENCE OFF)
     set(BUILD_TESTING OFF)
-    set(ENABLE_OPENSSL OFF)
     set(ENABLE_WEB_SERVICE OFF)
     set(ENABLE_LIBUSB OFF)
 
-    # allow static libs for boost and mbedtls though
+    # allow static libs for boost though
     set(Boost_USE_STATIC_LIBS ON)
     set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-    set(MBEDTLS_LIB_SUFFIX "_static")
-    set(YUZU_USE_CPM ON)
+    set(OPENSSL_USE_STATIC_LIBS ON)
 
     set(zstd_FORCE_BUNDLED ON)
     set(fmt_FORCE_BUNDLED ON)
 endif()
 
-# common network mbedtls
-# common: xbyak? booost fmt lz4 zstd
-# network: enet boost
-
 # qt stuff
 option(ENABLE_QT "Enable the Qt frontend" ON)
 option(ENABLE_QT_TRANSLATION "Enable translations for the Qt frontend" OFF)
 option(ENABLE_UPDATE_CHECKER "Enable update checker (for Qt and Android)" OFF)
-option(YUZU_USE_QT_MULTIMEDIA "Use QtMultimedia for Camera" OFF)
+cmake_dependent_option(YUZU_USE_QT_MULTIMEDIA "Use QtMultimedia for Camera"  OFF "NOT YUZU_USE_BUNDLED_QT" OFF)
 cmake_dependent_option(YUZU_USE_QT_WEB_ENGINE "Use QtWebEngine for web applet implementation" OFF "NOT YUZU_USE_BUNDLED_QT" OFF)
 set(YUZU_QT_MIRROR "" CACHE STRING "What mirror to use for downloading the bundled Qt libraries")
 cmake_dependent_option(YUZU_USE_BUNDLED_QT "Download bundled Qt binaries" "${MSVC}" "ENABLE_QT" OFF)
@@ -130,12 +123,7 @@ if (YUZU_STATIC_BUILD)
         set(YUZU_USE_BUNDLED_OPENSSL ON)
 
         set(HTTPLIB_USE_BROTLI_IF_AVAILABLE OFF)
-
-        ## some libraries define a Library::Name_static alternative ##
-        set(MBEDTLS_LIB_SUFFIX _static)
     elseif(APPLE)
-        set(YUZU_USE_CPM ON)
-
         set(YUZU_USE_BUNDLED_FFMPEG ON)
         set(YUZU_USE_BUNDLED_SDL2 ON)
         set(YUZU_USE_BUNDLED_OPENSSL ON)
@@ -145,7 +133,6 @@ if (YUZU_STATIC_BUILD)
         set(SPIRV-Tools_FORCE_BUNDLED ON)
         set(SPIRV-Headers_FORCE_BUNDLED ON)
         set(zstd_FORCE_BUNDLED ON)
-        set(MbedTLS_FORCE_BUNDLED ON)
     endif()
 endif()
 
@@ -183,13 +170,9 @@ if (MSVC AND NOT CXX_CLANG)
     set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} /W3 /WX-")
 endif()
 
-# Set bundled sdl2/qt as dependent options.
-# On Linux system SDL2 is likely to be lacking HIDAPI support which have drawbacks but is needed for SDL motion
-cmake_dependent_option(ENABLE_SDL2 "Enable the SDL2 frontend" ON "NOT ANDROID" OFF)
-
 # TODO(crueter): Cleanup, each dep that has a bundled option should allow to choose between bundled, external, system
-cmake_dependent_option(YUZU_USE_EXTERNAL_SDL2 "Build SDL2 from external source" OFF "ENABLE_SDL2;NOT MSVC" OFF)
-cmake_dependent_option(YUZU_USE_BUNDLED_SDL2 "Download bundled SDL2 build" "${MSVC}" "ENABLE_SDL2" OFF)
+cmake_dependent_option(YUZU_USE_EXTERNAL_SDL2 "Build SDL2 from external source" OFF "NOT MSVC;NOT ANDROID" OFF)
+cmake_dependent_option(YUZU_USE_BUNDLED_SDL2 "Download bundled SDL2 build" "${MSVC}" "NOT ANDROID" OFF)
 
 option(ENABLE_CUBEB "Enables the cubeb audio backend" ON)
 
@@ -197,8 +180,6 @@ set(EXT_DEFAULT OFF)
 if (MSVC OR ANDROID)
     set(EXT_DEFAULT ON)
 endif()
-
-option(YUZU_USE_CPM "Use CPM to fetch system dependencies (fmt, boost, etc) if needed. Externals will still be fetched." ${EXT_DEFAULT})
 
 # ffmpeg
 option(YUZU_USE_BUNDLED_FFMPEG "Download bundled FFmpeg" ${EXT_DEFAULT})
@@ -234,7 +215,7 @@ option(NIGHTLY_BUILD "Use Nightly qualifiers in the update checker and build met
 cmake_dependent_option(YUZU_ROOM "Enable dedicated room functionality" ON "NOT ANDROID" OFF)
 cmake_dependent_option(YUZU_ROOM_STANDALONE "Enable standalone room executable" ON "YUZU_ROOM" OFF)
 
-cmake_dependent_option(YUZU_CMD "Compile the eden-cli executable" ON "ENABLE_SDL2;NOT ANDROID" OFF)
+cmake_dependent_option(YUZU_CMD "Compile the eden-cli executable" ON "NOT ANDROID" OFF)
 
 cmake_dependent_option(YUZU_CRASH_DUMPS "Compile crash dump (Minidump) support" OFF "WIN32 OR PLATFORM_LINUX" OFF)
 
@@ -245,30 +226,12 @@ cmake_dependent_option(YUZU_USE_BUNDLED_MOLTENVK "Download bundled MoltenVK lib"
 
 option(YUZU_DISABLE_LLVM "Disable LLVM (useful for CI)" OFF)
 
-set(DEFAULT_ENABLE_OPENSSL ON)
-if (ANDROID OR WIN32 OR APPLE OR PLATFORM_SUN OR PLATFORM_OPENBSD)
-    # - Windows defaults to the Schannel backend.
-    # - macOS defaults to the SecureTransport backend.
-    # - Android currently has no SSL backend as the NDK doesn't include any SSL
-    #   library; a proper 'native' backend would have to go through Java.
-    # - Solaris and OpenBSD have too old backends
-    # But you can force builds for those platforms to use OpenSSL if you have
-    # your own copy of it.
-    set(DEFAULT_ENABLE_OPENSSL OFF)
-endif()
-
-if (ENABLE_WEB_SERVICE OR USE_DISCORD_PRESENCE)
-    set(DEFAULT_ENABLE_OPENSSL ON)
-endif()
-
-option(ENABLE_OPENSSL "Enable OpenSSL backend for ISslConnection" ${DEFAULT_ENABLE_OPENSSL})
-
 set(DEFAULT_YUZU_USE_BUNDLED_OPENSSL OFF)
 if (EXT_DEFAULT OR PLATFORM_SUN OR PLATFORM_OPENBSD)
     set(DEFAULT_YUZU_USE_BUNDLED_OPENSSL ON)
 endif()
 
-cmake_dependent_option(YUZU_USE_BUNDLED_OPENSSL "Download bundled OpenSSL build" ${DEFAULT_YUZU_USE_BUNDLED_OPENSSL} "ENABLE_OPENSSL" OFF)
+option(YUZU_USE_BUNDLED_OPENSSL "Download bundled OpenSSL build" ${DEFAULT_YUZU_USE_BUNDLED_OPENSSL})
 
 if (ANDROID AND YUZU_DOWNLOAD_ANDROID_VVL)
     AddJsonPackage(vulkan-validation-layers)
@@ -396,123 +359,94 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# openssl funniness
-if (ENABLE_OPENSSL)
-    if (YUZU_USE_BUNDLED_OPENSSL)
-        set(BUILD_SHARED_LIBS OFF)
-        AddJsonPackage(openssl)
-        if (OpenSSL_ADDED)
-            add_compile_definitions(YUZU_BUNDLED_OPENSSL)
-        endif()
-    endif()
+find_package(RenderDoc MODULE)
 
-    find_package(OpenSSL 1.1.1 REQUIRED)
+# openssl funniness
+if (YUZU_USE_BUNDLED_OPENSSL)
+    set(BUILD_SHARED_LIBS OFF)
+    AddJsonPackage(openssl)
+    if (OpenSSL_ADDED)
+        add_compile_definitions(YUZU_BUNDLED_OPENSSL)
+    endif()
 endif()
 
-if (YUZU_USE_CPM)
-    message(STATUS "Fetching needed dependencies with CPM")
+find_package(OpenSSL 3 REQUIRED)
 
-    set(BUILD_SHARED_LIBS OFF)
-    set(BUILD_TESTING OFF)
-    set(ENABLE_TESTING OFF)
+message(STATUS "Fetching needed dependencies with CPM")
 
-    # TODO(crueter): renderdoc?
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+set(ENABLE_TESTING OFF)
 
-    # boost
-    set(BOOST_INCLUDE_LIBRARIES algorithm icl pool container heap asio headers process filesystem crc variant)
+# boost
+set(BOOST_INCLUDE_LIBRARIES algorithm icl pool container heap asio headers process filesystem crc variant)
 
-    AddJsonPackage(boost)
+AddJsonPackage(boost)
 
-    # really annoying thing where boost::headers doesn't work with cpm
-    # TODO(crueter) investigate
-    set(BOOST_NO_HEADERS ${Boost_ADDED})
+# really annoying thing where boost::headers doesn't work with cpm
+# TODO(crueter) investigate
+set(BOOST_NO_HEADERS ${Boost_ADDED})
 
-    if (Boost_ADDED)
-        if (MSVC OR ANDROID)
-            add_compile_definitions(YUZU_BOOST_v1)
-        endif()
-
-        if (NOT MSVC OR CXX_CLANG)
-            # boost sucks
-            if (PLATFORM_SUN)
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthreads")
-                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthreads")
-            endif()
-
-            target_compile_options(boost_heap INTERFACE -Wno-shadow)
-            target_compile_options(boost_icl INTERFACE -Wno-shadow)
-            target_compile_options(boost_asio INTERFACE -Wno-conversion -Wno-implicit-fallthrough)
-        endif()
+if (Boost_ADDED)
+    if (MSVC OR ANDROID)
+        add_compile_definitions(YUZU_BOOST_v1)
     endif()
 
-    # fmt
-    AddJsonPackage(fmt)
-
-    # lz4
-    AddJsonPackage(lz4)
-
-    if (lz4_ADDED)
-        add_library(lz4::lz4 ALIAS lz4_static)
-    endif()
-
-    # zstd
-    AddJsonPackage(zstd)
-
-    if (zstd_ADDED)
-        add_library(zstd::zstd ALIAS libzstd_static)
-        add_library(zstd::libzstd ALIAS libzstd_static)
-    endif()
-
-    if (NOT YUZU_STATIC_ROOM)
-        # nlohmann
-        AddJsonPackage(nlohmann)
-
-        # zlib
-        AddJsonPackage(zlib)
-
-        if (ZLIB_ADDED)
-            add_library(ZLIB::ZLIB ALIAS zlibstatic)
+    if (NOT MSVC OR CXX_CLANG)
+        # boost sucks
+        if (PLATFORM_SUN)
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthreads")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthreads")
         endif()
 
-        # Opus
-        AddJsonPackage(opus)
+        target_compile_options(boost_heap INTERFACE -Wno-shadow)
+        target_compile_options(boost_icl INTERFACE -Wno-shadow)
+        target_compile_options(boost_asio INTERFACE -Wno-conversion -Wno-implicit-fallthrough)
+    endif()
+endif()
 
-        if (Opus_ADDED)
-            if (MSVC AND CXX_CLANG)
-                target_compile_options(opus PRIVATE
-                    -Wno-implicit-function-declaration
-                )
-            endif()
-        endif()
+# fmt
+AddJsonPackage(fmt)
 
-        if (NOT TARGET Opus::opus)
-            add_library(Opus::opus ALIAS opus)
+# lz4
+AddJsonPackage(lz4)
+
+if (lz4_ADDED)
+    add_library(lz4::lz4 ALIAS lz4_static)
+endif()
+
+# zstd
+AddJsonPackage(zstd)
+
+if (zstd_ADDED)
+    add_library(zstd::zstd ALIAS libzstd_static)
+    add_library(zstd::libzstd ALIAS libzstd_static)
+endif()
+
+if (NOT YUZU_STATIC_ROOM)
+    # nlohmann
+    AddJsonPackage(nlohmann)
+
+    # zlib
+    AddJsonPackage(zlib)
+
+    if (ZLIB_ADDED)
+        add_library(ZLIB::ZLIB ALIAS zlibstatic)
+    endif()
+
+    # Opus
+    AddJsonPackage(opus)
+
+    if (Opus_ADDED)
+        if (MSVC AND CXX_CLANG)
+            target_compile_options(opus PRIVATE
+                -Wno-implicit-function-declaration
+            )
         endif()
     endif()
-else()
-    # TODO: we can probably just use CPM for this... right?
-    # Enforce the search mode of non-required packages for better and shorter failure messages
-    find_package(fmt 8 REQUIRED)
 
-    if (NOT YUZU_DISABLE_LLVM)
-        find_package(LLVM MODULE COMPONENTS Demangle)
-    endif()
-
-    find_package(nlohmann_json 3.8 REQUIRED)
-    find_package(lz4 REQUIRED)
-    find_package(RenderDoc MODULE)
-    find_package(stb MODULE)
-
-    find_package(Opus 1.3 MODULE REQUIRED)
-
-    find_package(ZLIB 1.2 REQUIRED)
-    find_package(zstd 1.5 REQUIRED MODULE)
-
-    # wow
-    find_package(Boost 1.57.0 CONFIG REQUIRED OPTIONAL_COMPONENTS headers context system fiber filesystem)
-
-    if (ENABLE_OPENSSL)
-        find_package(OpenSSL 1.1.1 REQUIRED)
+    if (NOT TARGET Opus::opus)
+        add_library(Opus::opus ALIAS opus)
     endif()
 endif()
 
@@ -574,8 +508,8 @@ message(STATUS "Platform Libraries: ${PLATFORM_LIBRARIES}")
 add_subdirectory(externals)
 
 # pass targets from externals
+# TODO(crueter): CPMUtil Propagate func?
 find_package(enet)
-find_package(MbedTLS)
 find_package(unordered_dense REQUIRED)
 
 if (ARCHITECTURE_x86 OR ARCHITECTURE_x86_64)
@@ -605,7 +539,7 @@ if (NOT YUZU_STATIC_ROOM)
         find_package(oaknut)
     endif()
 
-    if (ENABLE_SDL2)
+    if (NOT ANDROID)
         find_package(SDL2)
     endif()
 

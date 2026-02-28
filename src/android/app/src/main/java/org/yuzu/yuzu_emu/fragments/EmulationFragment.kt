@@ -15,6 +15,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.BatteryManager.*
@@ -99,6 +100,7 @@ import org.yuzu.yuzu_emu.utils.collect
 import org.yuzu.yuzu_emu.utils.CustomSettingsHandler
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.nio.ByteBuffer
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import kotlin.or
@@ -143,6 +145,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
 
     private var wasInputOverlayAutoHidden = false
     private var overlayTouchActive = false
+    private var pausedFrameBitmap: Bitmap? = null
 
     var shouldUseCustom = false
     private var isQuickSettingsMenuOpen = false
@@ -706,6 +709,12 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         binding.inGameMenu.menu.findItem(R.id.menu_quick_settings)?.isVisible =
             BooleanSetting.ENABLE_QUICK_SETTINGS.getBoolean()
 
+        binding.pausedIcon.setOnClickListener {
+            if (this::emulationState.isInitialized && emulationState.isPaused) {
+                resumeEmulationFromUi()
+            }
+        }
+
         binding.inGameMenu.menu.findItem(R.id.menu_lock_drawer).apply {
             val lockMode = IntSetting.LOCK_DRAWER.getInt()
             val titleId = if (lockMode == DrawerLayout.LOCK_MODE_LOCKED_CLOSED) {
@@ -731,11 +740,9 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             when (it.itemId) {
                 R.id.menu_pause_emulation -> {
                     if (emulationState.isPaused) {
-                        emulationState.run(false)
-                        updatePauseMenuEntry(false)
+                        resumeEmulationFromUi()
                     } else {
-                        emulationState.pause()
-                        updatePauseMenuEntry(true)
+                        pauseEmulationAndCaptureFrame()
                     }
                     binding.inGameMenu.requestFocus()
                     true
@@ -829,6 +836,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 }
 
                 R.id.menu_exit -> {
+                    clearPausedFrame()
                     emulationState.stop()
                     NativeConfig.reloadGlobalConfig()
                     emulationViewModel.setIsEmulationStopping(true)
@@ -1228,6 +1236,71 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         }
     }
 
+    private fun pauseEmulationAndCaptureFrame() {
+        emulationState.pause()
+        updatePauseMenuEntry(true)
+        capturePausedFrameFromCore()
+        updatePausedFrameVisibility()
+    }
+
+    private fun capturePausedFrameFromCore() {
+        lifecycleScope.launch(Dispatchers.Default) {
+            val frameData = NativeLibrary.getAppletCaptureBuffer()
+            val width = NativeLibrary.getAppletCaptureWidth()
+            val height = NativeLibrary.getAppletCaptureHeight()
+            if (frameData.isEmpty() || width <= 0 || height <= 0) {
+                Log.warning(
+                    "[EmulationFragment] Paused frame capture returned empty/invalid data. " +
+                        "size=${frameData.size}, width=$width, height=$height"
+                )
+                return@launch
+            }
+
+            val expectedSize = width * height * 4
+            if (frameData.size < expectedSize) {
+                Log.warning(
+                    "[EmulationFragment] Paused frame buffer smaller than expected. " +
+                        "size=${frameData.size}, expected=$expectedSize"
+                )
+                return@launch
+            }
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(frameData, 0, expectedSize))
+
+            withContext(Dispatchers.Main) {
+                pausedFrameBitmap?.recycle()
+                pausedFrameBitmap = bitmap
+                updatePausedFrameVisibility()
+            }
+        }
+    }
+
+    private fun updatePausedFrameVisibility() {
+        val b = _binding ?: return
+        val showPausedUi = this::emulationState.isInitialized && emulationState.isPaused
+        b.pausedIcon.setVisible(showPausedUi)
+
+        val bitmap = if (showPausedUi) pausedFrameBitmap else null
+        b.pausedFrameImage.setImageBitmap(bitmap)
+        b.pausedFrameImage.setVisible(bitmap != null)
+    }
+
+    private fun resumeEmulationFromUi() {
+        clearPausedFrame()
+        emulationState.resume()
+        updatePauseMenuEntry(emulationState.isPaused)
+        updatePausedFrameVisibility()
+    }
+
+    private fun clearPausedFrame() {
+        val b = _binding
+        b?.pausedFrameImage?.setVisible(false)
+        b?.pausedFrameImage?.setImageDrawable(null)
+        pausedFrameBitmap?.recycle()
+        pausedFrameBitmap = null
+    }
+
     private fun handleLoadAmiiboSelection(): Boolean {
         val binding = _binding ?: return true
 
@@ -1321,8 +1394,9 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     override fun onPause() {
         if (this::emulationState.isInitialized) {
             if (emulationState.isRunning && emulationActivity?.isInPictureInPictureMode != true) {
-                emulationState.pause()
-                updatePauseMenuEntry(true)
+                pauseEmulationAndCaptureFrame()
+            } else {
+                updatePausedFrameVisibility()
             }
         }
         super.onPause()
@@ -1332,6 +1406,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         super.onDestroyView()
         amiiboLoadJob?.cancel()
         amiiboLoadJob = null
+        clearPausedFrame()
         _binding?.surfaceInputOverlay?.touchEventListener = null
         _binding = null
         isAmiiboPickerOpen = false
@@ -1352,6 +1427,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             b.inGameMenu.post {
                 if (!this::emulationState.isInitialized || _binding == null) return@post
                 updatePauseMenuEntry(emulationState.isPaused)
+                updatePausedFrameVisibility()
             }
         }
 
@@ -1809,6 +1885,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             // Only update surface reference, don't trigger state changes
             emulationState.updateSurfaceReference(holder.surface)
         }
+        updatePausedFrameVisibility()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
@@ -2140,6 +2217,29 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         }
 
         @Synchronized
+        fun resume() {
+            if (state != State.PAUSED) {
+                Log.warning("[EmulationFragment] Resume called while emulation is not paused.")
+                return
+            }
+            if (!emulationCanStart.invoke()) {
+                Log.warning("[EmulationFragment] Resume blocked by emulationCanStart check.")
+                return
+            }
+            val currentSurface = surface
+            if (currentSurface == null || !currentSurface.isValid) {
+                Log.debug("[EmulationFragment] Resume requested with invalid surface.")
+                return
+            }
+
+            NativeLibrary.surfaceChanged(currentSurface)
+            Log.debug("[EmulationFragment] Resuming emulation.")
+            NativeLibrary.unpauseEmulation()
+            NativeLibrary.playTimeManagerStart()
+            state = State.RUNNING
+        }
+
+        @Synchronized
         fun changeProgram(programIndex: Int) {
             emulationThread.join()
             emulationThread = Thread({
@@ -2160,7 +2260,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
 
         @Synchronized
         fun updateSurface() {
-            if (surface != null) {
+            if (surface != null && state == State.RUNNING) {
                 NativeLibrary.surfaceChanged(surface)
             }
         }
@@ -2176,20 +2276,20 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         @Synchronized
         fun clearSurface() {
             if (surface == null) {
-                Log.warning("[EmulationFragment] clearSurface called, but surface already null.")
+                Log.debug("[EmulationFragment] clearSurface called, but surface already null.")
             } else {
+                if (state == State.RUNNING) {
+                    pause()
+                }
+                NativeLibrary.surfaceDestroyed()
                 surface = null
                 Log.debug("[EmulationFragment] Surface destroyed.")
                 when (state) {
-                    State.RUNNING -> {
-                        state = State.PAUSED
-                    }
-
-                    State.PAUSED -> Log.warning(
+                    State.PAUSED -> Log.debug(
                         "[EmulationFragment] Surface cleared while emulation paused."
                     )
 
-                    else -> Log.warning(
+                    else -> Log.debug(
                         "[EmulationFragment] Surface cleared while emulation stopped."
                     )
                 }
@@ -2197,29 +2297,35 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         }
 
         private fun runWithValidSurface(programIndex: Int = 0) {
-            NativeLibrary.surfaceChanged(surface)
             if (!emulationCanStart.invoke()) {
+                return
+            }
+            val currentSurface = surface
+            if (currentSurface == null || !currentSurface.isValid) {
+                Log.debug("[EmulationFragment] runWithValidSurface called with invalid surface.")
                 return
             }
 
             when (state) {
                 State.STOPPED -> {
+                    NativeLibrary.surfaceChanged(currentSurface)
                     emulationThread = Thread({
                         Log.debug("[EmulationFragment] Starting emulation thread.")
                         NativeLibrary.run(gamePath, programIndex, true)
                     }, "NativeEmulation")
                     emulationThread.start()
+                    state = State.RUNNING
                 }
 
                 State.PAUSED -> {
-                    Log.debug("[EmulationFragment] Resuming emulation.")
-                    NativeLibrary.unpauseEmulation()
-                    NativeLibrary.playTimeManagerStart()
+                    Log.debug(
+                        "[EmulationFragment] Surface restored while emulation paused; " +
+                            "waiting for explicit resume."
+                    )
                 }
 
                 else -> Log.debug("[EmulationFragment] Bug, run called while already running.")
             }
-            state = State.RUNNING
         }
 
         private enum class State {

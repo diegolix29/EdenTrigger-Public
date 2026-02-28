@@ -36,6 +36,7 @@ enum class IntSetting(override val key: String) : AbstractIntSetting {
     THEME("theme"),
     THEME_COLOR("theme_color"),
     THEME_MODE("theme_mode"),
+    STATIC_THEME_COLOR("static_theme_color"),
     APP_LANGUAGE("app_language"),
     OVERLAY_SCALE("control_scale"),
     OVERLAY_OPACITY("control_opacity"),
@@ -70,7 +71,6 @@ enum class IntSetting(override val key: String) : AbstractIntSetting {
     MY_PAGE_APPLET("my_page_applet_mode"),
     INPUT_OVERLAY_AUTO_HIDE("input_overlay_auto_hide"),
     OVERLAY_GRID_SIZE("overlay_grid_size"),
-    DEBUG_KNOBS("debug_knobs"),
     GPU_LOG_RING_BUFFER_SIZE("gpu_log_ring_buffer_size")
     ;
 

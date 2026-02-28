@@ -102,19 +102,14 @@ A32EmitX64::BlockDescriptor A32EmitX64::Emit(IR::Block& block) {
     }
 
     code.EnableWriting();
-
-    const boost::container::static_vector<HostLoc, 28> gpr_order = [this] {
-        boost::container::static_vector<HostLoc, 28> gprs{any_gpr};
-        if (conf.fastmem_pointer) {
-            gprs.erase(std::find(gprs.begin(), gprs.end(), HostLoc::R13));
-        }
-        if (conf.page_table) {
-            gprs.erase(std::find(gprs.begin(), gprs.end(), HostLoc::R14));
-        }
+    new (&this->reg_alloc) RegAlloc([this] {
+        std::bitset<32> gprs{any_gpr};
+        if (conf.fastmem_pointer)
+            gprs.reset(size_t(HostLoc::R13));
+        if (conf.page_table)
+            gprs.reset(size_t(HostLoc::R14));
         return gprs;
-    }();
-
-    new (&this->reg_alloc) RegAlloc(gpr_order, any_xmm);
+    }(), any_xmm);
     A32EmitContext ctx{conf, reg_alloc, block};
 
     // Start emitting.
@@ -1135,19 +1130,6 @@ void A32EmitX64::EmitSetUpperLocationDescriptor(IR::LocationDescriptor new_locat
 }
 
 namespace {
-void EmitTerminalImpl(A32EmitX64& e, IR::Term::Interpret terminal, IR::LocationDescriptor initial_location, bool) {
-    ASSERT(A32::LocationDescriptor{terminal.next}.TFlag() == A32::LocationDescriptor{initial_location}.TFlag() && "Unimplemented");
-    ASSERT(A32::LocationDescriptor{terminal.next}.EFlag() == A32::LocationDescriptor{initial_location}.EFlag() && "Unimplemented");
-    ASSERT(terminal.num_instructions == 1 && "Unimplemented");
-
-    e.code.mov(e.code.ABI_PARAM2.cvt32(), A32::LocationDescriptor{terminal.next}.PC());
-    e.code.mov(e.code.ABI_PARAM3.cvt32(), 1);
-    e.code.mov(MJitStateReg(A32::Reg::PC), e.code.ABI_PARAM2.cvt32());
-    e.code.SwitchMxcsrOnExit();
-    Devirtualize<&A32::UserCallbacks::InterpreterFallback>(e.conf.callbacks).EmitCall(e.code);
-    e.code.ReturnFromRunCode(true);  // TODO: Check cycles
-}
-
 void EmitTerminalImpl(A32EmitX64& e, IR::Term::ReturnToDispatch, IR::LocationDescriptor, bool) {
     e.code.ReturnFromRunCode();
 }

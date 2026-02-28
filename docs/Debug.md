@@ -22,17 +22,25 @@ Debug logs can be found in General -> Debug -> Open Log Location on desktop, and
 
 Ignoring SIGSEGV when debugging in host:
 
-- **gdb**: `handle all nostop pass`.
+- **gdb**: `handle SIGSEGV nostop pass`.
 - **lldb**: `pro hand -p true -s false -n false SIGSEGV`.
 
 ## Debugging (guest code)
 
 ### gdb
 
-Run `./build/bin/eden-cli -c <path to your config file (see logs where you run eden normally to see where it is)> -d -g <path to game>`
+You must have GDB installed for aarch64 to debug the target. Install it through your package manager, e.g.:
+* On Arch:
+  * `sudo pacman -Syu aarch64-linux-gnu-gdb`
+* On Gentoo:
+  * `sudo emerge --ask crossdev`
+  * `sudo crossdev -t aarch64-unknown-linux-gnu --ex-gdb`
 
-Then hook up an aarch64-gdb (use `yay aarch64-gdb` or `sudo pkg in arch64-gdb` to install)
-Then type `target remote localhost:1234` and type `c` (for continue) - and then if it crashes just do a `bt` (backtrace) and `layout asm`.
+Run `./build/bin/eden-cli -c <path to your config file (see logs where you run eden normally to see where it is)> -d -g <path to game>`
+Or `Enable GDB Stub` at General > Debug, then hook up an aarch64-gdb:
+* `target remote localhost:6543`
+
+Type `c` (for continue) and then if it crashes just do a `bt` (backtrace) and `layout asm`
 
 ### gdb cheatsheet
 

@@ -36,6 +36,8 @@
     <string name="enable_input_overlay_auto_hide">Enable Overlay Auto Hide</string>
     <string name="hide_overlay_on_controller_input">Hide Overlay on Controller Input</string>
     <string name="hide_overlay_on_controller_input_description">Automatically hide the touch controls overlay when a physical controller is used. Overlay reappears when controller is disconnected.</string>
+    <string name="invert_confirm_back_controller_buttons">Invert Confirm/Back Controller Buttons</string>
+    <string name="invert_confirm_back_controller_buttons_description">Swap Android Confirm and Back button handling to match both Switch and Xbox styles while using the app UI.</string>
 
     <string name="input_overlay_options">Input Overlay</string>
     <string name="input_overlay_options_description">Configure on-screen controls</string>
@@ -502,7 +504,8 @@
     <string name="renderer_reactive_flushing_description">Improves rendering accuracy in some games at the cost of performance.</string>
     <string name="enable_buffer_history">Enable buffer history</string>
     <string name="enable_buffer_history_description">Enables access to previous buffer states. This option may improve rendering quality and performance consistency in some games.</string>
-
+    <string name="use_optimized_vertex_buffers">Optimized Vertex Buffers</string>
+    <string name="use_optimized_vertex_buffers_description">Enables optimized vertex buffer binding for improved performance. Requires Mesa 26.0+ Turnip drivers. Will crash on older drivers.</string>
 
     <string name="hacks">Hacks</string>
 
@@ -1029,7 +1032,8 @@
     <string name="language_simplified_chinese" translatable="false">简体中文</string>
     <string name="language_traditional_chinese" translatable="false">正體中文</string>
     <string name="language_brazilian_portuguese" translatable="false">Português do Brasil</string>
-    <string name="language_serbian" translatable="false">српски</string>
+    <string name="language_polish" translatable="false">Polska</string>
+    <string name="language_thai" translatable="false">แบบไทย</string>
 
     <!-- Memory Sizes -->
     <string name="memory_byte_shorthand">B</string>
@@ -1234,15 +1238,16 @@
     <string name="app_language_persian" translatable="false">فارسی</string>
     <string name="app_language_hebrew" translatable="false">עברית</string>
     <string name="app_language_serbian" translatable="false">Српски</string>
+    <string name="app_language_thai" translatable="false">แบบไทย</string>
 
     <!-- Static Themes -->
     <string name="static_theme_color">Theme Color</string>
-    <string name="eden_theme">Eden (Default)</string>
+    <string name="eden_theme">Eden</string>
     <string name="violet">Violet</string>
     <string name="blue">Blue</string>
     <string name="cyan">Eden Trigger</string>
     <string name="red">Red</string>
-    <string name="green">Green</string>
+    <string name="green">Green (Default)</string>
     <string name="yellow">Yellow</string>
     <string name="orange">Orange</string>
     <string name="pink">Pink</string>
