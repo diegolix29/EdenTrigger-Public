@@ -557,18 +557,10 @@ Device::Device(VkInstance instance_, vk::PhysicalDevice physical_, VkSurfaceKHR 
     }
 
     if (is_nvidia) {
-        const u32 nv_major_version = (properties.properties.driverVersion >> 22) & 0x3ff;
         const auto arch = GetNvidiaArch();
         if (arch >= NvidiaArchitecture::Arch_AmpereOrNewer) {
             LOG_WARNING(Render_Vulkan, "Ampere and newer have broken float16 math");
             features.shader_float16_int8.shaderFloat16 = false;
-        }
-
-        if (nv_major_version >= 510) {
-            LOG_WARNING(Render_Vulkan,
-                        "NVIDIA Drivers >= 510 do not support MSAA->MSAA image blits. "
-                        "MSAA scaling will use 3D helpers. MSAA resolves work normally.");
-            cant_blit_msaa = true;
         }
 
         // Mali/ NVIDIA proprietary drivers: Shader stencil export not supported
@@ -594,11 +586,19 @@ Device::Device(VkInstance instance_, vk::PhysicalDevice physical_, VkSurfaceKHR 
     if (is_amd_driver) {
         // AMD drivers need a higher amount of Sets per Pool in certain circumstances like in XC2.
         sets_per_pool = 96;
+
         // Disable VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT on AMD GCN4 and lower as it is broken.
         if (!features.shader_float16_int8.shaderFloat16) {
             LOG_WARNING(Render_Vulkan,
                         "AMD GCN4 and earlier have broken VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT");
             has_broken_cube_compatibility = true;
+        }
+
+        // AMD drivers (2026+) have broken float16 math on DKCR
+        if (features.shader_float16_int8.shaderFloat16) {
+            LOG_WARNING(Render_Vulkan,
+                        "AMD drivers (2026+) have broken float16 math");
+            features.shader_float16_int8.shaderFloat16 = false;
         }
     }
 
