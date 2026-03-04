@@ -982,6 +982,14 @@
     <string name="cpu_core_efficiency">Efficiency Only</string>
     <string name="cpu_core_performance">Performance Only</string>
     <string name="cpu_core_custom">Custom</string>
+    <string name="cpu_core_custom_selection">Custom Core Selection</string>
+    <string name="cpu_core_selection_description">Select which CPU cores to use for emulation. Disabling cores can save battery but may reduce performance.</string>
+    <string name="select_all">Select All</string>
+    <string name="select_none">Select None</string>
+    <string name="performance_core">Performance Core</string>
+    <string name="efficiency_core">Efficiency Core</string>
+    <string name="standard_core">Standard Core</string>
+    <string name="core_frequency">%1$d MHz</string>
 
     <!-- GPU overclock factors -->
     <string name="off">Off</string>

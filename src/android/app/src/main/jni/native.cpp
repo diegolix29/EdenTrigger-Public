@@ -21,6 +21,8 @@
 #include <vector>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <sched.h>
+#include <errno.h>
 
 #include <iostream>
 #ifdef ARCHITECTURE_arm64
@@ -1151,6 +1153,128 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_getCpuSummary(JNIEnv* env, jobject
     }
 }
 
+void Java_org_yuzu_yuzu_1emu_NativeLibrary_setCpuCoreAffinity(JNIEnv* env, jclass clazz, jintArray coreIds) {
+    if (!coreIds) {
+        return;
+    }
+
+    jsize length = env->GetArrayLength(coreIds);
+    if (length == 0) {
+        return;
+    }
+
+    jint* cores = env->GetIntArrayElements(coreIds, nullptr);
+    if (!cores) {
+        return;
+    }
+
+    try {
+        // Create CPU affinity mask
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+
+        for (jsize i = 0; i < length; ++i) {
+            if (cores[i] >= 0 && cores[i] < CPU_SETSIZE) {
+                CPU_SET(cores[i], &cpuset);
+            }
+        }
+
+        // Set affinity for current thread and future threads
+        if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0) {
+            LOG_ERROR(Frontend, "Failed to set CPU affinity: {}", strerror(errno));
+        } else {
+            LOG_INFO(Frontend, "Successfully set CPU affinity to {} cores", length);
+        }
+
+        // Also set affinity for the current process
+        if (sched_setaffinity(getpid(), sizeof(cpu_set_t), &cpuset) != 0) {
+            LOG_ERROR(Frontend, "Failed to set process CPU affinity: {}", strerror(errno));
+        }
+
+    } catch (...) {
+        LOG_ERROR(Frontend, "Exception occurred while setting CPU affinity");
+    }
+
+    env->ReleaseIntArrayElements(coreIds, cores, 0);
+}
+
+void applyCpuCoreAffinityFromSettings() {
+    try {
+        // Get the current CPU core configuration from settings
+        const auto cpu_core_config = Settings::values.cpu_core_config.GetValue();
+
+        // Determine which cores to use based on configuration
+        std::vector<int> core_ids;
+
+        switch (static_cast<int>(cpu_core_config)) {
+        case 0: // All cores
+        {
+            const auto num_cores = std::thread::hardware_concurrency();
+            for (int i = 0; i < static_cast<int>(num_cores); ++i) {
+                core_ids.push_back(i);
+            }
+            break;
+        }
+        case 1: // Efficiency cores only (simplified - assume cores 4+ are efficiency)
+        {
+            const auto num_cores = std::thread::hardware_concurrency();
+            for (int i = 4; i < static_cast<int>(num_cores); ++i) {
+                core_ids.push_back(i);
+            }
+            break;
+        }
+        case 2: // Performance cores only (simplified - assume cores 0-3 are performance)
+        {
+            const auto num_cores = std::min(4, static_cast<int>(std::thread::hardware_concurrency()));
+            for (int i = 0; i < num_cores; ++i) {
+                core_ids.push_back(i);
+            }
+            break;
+        }
+        case 3: // Custom selection - read from SharedPreferences
+        {
+            // For custom selection, we'll need to access Android SharedPreferences
+            // This is more complex and would require additional JNI integration
+            // For now, fall back to all cores
+            const auto num_cores = std::thread::hardware_concurrency();
+            for (int i = 0; i < static_cast<int>(num_cores); ++i) {
+                core_ids.push_back(i);
+            }
+            break;
+        }
+        default:
+            // Default to all cores
+            const auto num_cores = std::thread::hardware_concurrency();
+            for (int i = 0; i < static_cast<int>(num_cores); ++i) {
+                core_ids.push_back(i);
+            }
+            break;
+        }
+
+        if (!core_ids.empty()) {
+            // Create CPU affinity mask
+            cpu_set_t cpuset;
+            CPU_ZERO(&cpuset);
+
+            for (int core_id : core_ids) {
+                if (core_id >= 0 && core_id < CPU_SETSIZE) {
+                    CPU_SET(core_id, &cpuset);
+                }
+            }
+
+            // Set affinity for current thread
+            if (sched_setaffinity(0, sizeof(cpu_set_t), &cpuset) != 0) {
+                LOG_ERROR(Frontend, "Failed to set CPU affinity: {}", strerror(errno));
+            } else {
+                LOG_INFO(Frontend, "Successfully set CPU affinity to {} cores", core_ids.size());
+            }
+        }
+
+    } catch (...) {
+        LOG_ERROR(Frontend, "Exception occurred while applying CPU core affinity");
+    }
+}
+
 
 namespace {
 constexpr u32 VENDOR_QUALCOMM = 0x5143;
@@ -1260,6 +1384,10 @@ jstring Java_org_yuzu_yuzu_1emu_NativeLibrary_getGpuModel(JNIEnv* env, jobject j
 void Java_org_yuzu_yuzu_1emu_NativeLibrary_applySettings(JNIEnv* env, jobject jobj) {
     EmulationSession::GetInstance().System().ApplySettings();
     EmulationSession::GetInstance().System().HIDCore().ReloadInputDevices();
+
+    // Apply CPU core affinity based on current configuration
+    extern void applyCpuCoreAffinityFromSettings();
+    applyCpuCoreAffinityFromSettings();
 }
 
 void Java_org_yuzu_yuzu_1emu_NativeLibrary_logSettings(JNIEnv* env, jobject jobj) {

@@ -34,6 +34,7 @@ import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
 import org.yuzu.yuzu_emu.fragments.MessageDialogFragment
+import org.yuzu.yuzu_emu.dialogs.CpuCoreSelectionDialogFragment
 
 class SettingsFragmentPresenter(
     private val settingsViewModel: SettingsViewModel,
@@ -237,6 +238,17 @@ class SettingsFragmentPresenter(
 
             add(HeaderSetting(R.string.cpu))
             add(IntSetting.CPU_CORE_CONFIG.key)
+            // Only show custom core selection when CPU core config is set to Custom (value 3)
+            if (IntSetting.CPU_CORE_CONFIG.getInt(!NativeConfig.isPerGameConfigLoaded()) == 3) {
+                add(
+                    RunnableSetting(
+                        titleId = R.string.cpu_core_custom_selection,
+                        descriptionId = R.string.cpu_core_selection_description,
+                        isRunnable = true,
+                        runnable = { showCustomCoreSelectionDialog() }
+                    )
+                )
+            }
             add(IntSetting.FAST_CPU_TIME.key)
             add(BooleanSetting.CORE_SYNC_CORE_SPEED.key)
 
@@ -1282,6 +1294,13 @@ class SettingsFragmentPresenter(
                     pathSetter = { path -> NativeConfig.setSdmcDir(path) }
                 )
             )
+        }
+    }
+
+    private fun showCustomCoreSelectionDialog() {
+        activity?.let { fragmentActivity ->
+            val dialog = CpuCoreSelectionDialogFragment.newInstance()
+            dialog.show(fragmentActivity.supportFragmentManager, "CpuCoreSelectionDialog")
         }
     }
 }

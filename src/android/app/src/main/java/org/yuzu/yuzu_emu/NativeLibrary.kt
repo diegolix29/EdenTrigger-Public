@@ -197,6 +197,12 @@ object NativeLibrary {
     external fun getCpuBackend(): String
 
     /**
+     * Sets CPU core affinity for emulation threads.
+     * @param coreIds Array of CPU core IDs to use
+     */
+    external fun setCpuCoreAffinity(coreIds: IntArray)
+
+    /**
      * Returns the current GPU Driver.
      */
     external fun getGpuDriver(): String

@@ -399,6 +399,11 @@ class SettingsDialogFragment : DialogFragment(), DialogInterface.OnClickListener
                     settingsViewModel.setShouldRecreateForLanguageChange(true)
                     // recreate page apply language change instantly
                     requireActivity().recreate()
+                } else if (scSetting.setting.key == "cpu_core_config") {
+                    // Reload settings list to show/hide custom core selection
+                    settingsViewModel.setShouldReloadSettingsList(true)
+                    // Apply CPU core affinity for the new configuration
+                    org.yuzu.yuzu_emu.utils.CpuCoreHelper.applyCurrentCpuCoreConfig()
                 }
             }
 
