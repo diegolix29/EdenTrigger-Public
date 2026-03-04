@@ -236,6 +236,7 @@ class SettingsFragmentPresenter(
             add(LongSetting.CUSTOM_RTC.key)
 
             add(HeaderSetting(R.string.cpu))
+            add(IntSetting.CPU_CORE_CONFIG.key)
             add(IntSetting.FAST_CPU_TIME.key)
             add(BooleanSetting.CORE_SYNC_CORE_SPEED.key)
 
@@ -318,6 +319,7 @@ class SettingsFragmentPresenter(
             add(BooleanSetting.SHOW_APP_RAM_USAGE.key)
             add(BooleanSetting.SHOW_SYSTEM_RAM_USAGE.key)
             add(BooleanSetting.SHOW_BAT_TEMPERATURE.key)
+            add(BooleanSetting.SHOW_CPU_TEMPERATURE.key)
             add(IntSetting.BAT_TEMPERATURE_UNIT.key)
             add(BooleanSetting.SHOW_POWER_INFO.key)
             add(BooleanSetting.SHOW_SHADERS_BUILDING.key)
