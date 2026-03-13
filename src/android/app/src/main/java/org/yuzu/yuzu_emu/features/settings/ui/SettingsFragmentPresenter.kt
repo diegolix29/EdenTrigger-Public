@@ -6,7 +6,6 @@ package org.yuzu.yuzu_emu.features.settings.ui
 import android.annotation.SuppressLint
 import android.os.Build
 import android.widget.Toast
-import androidx.preference.PreferenceManager
 import org.yuzu.yuzu_emu.NativeLibrary
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.YuzuApplication
@@ -27,11 +26,9 @@ import org.yuzu.yuzu_emu.features.settings.model.Settings.MenuTag
 import org.yuzu.yuzu_emu.features.settings.model.ShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.StringSetting
 import org.yuzu.yuzu_emu.features.settings.model.view.*
-import org.yuzu.yuzu_emu.utils.GpuDriverHelper
 import org.yuzu.yuzu_emu.utils.InputHandler
 import org.yuzu.yuzu_emu.utils.NativeConfig
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
-import androidx.core.content.edit
 import androidx.fragment.app.FragmentActivity
 import org.yuzu.yuzu_emu.fragments.MessageDialogFragment
 import org.yuzu.yuzu_emu.dialogs.CpuCoreSelectionDialogFragment
@@ -184,16 +181,6 @@ class SettingsFragmentPresenter(
                     menuKey = MenuTag.SECTION_DEBUG
                 )
             )
-            if (GpuDriverHelper.isAdrenoGpu() && !NativeConfig.isPerGameConfigLoaded()) {
-                add(
-                    SubmenuSetting(
-                        titleId = R.string.gpu_driver_settings,
-                        descriptionId = R.string.freedreno_settings_title,
-                        iconId = R.drawable.ic_graphics,
-                        menuKey = MenuTag.SECTION_FREEDRENO
-                    )
-                )
-            }
             add(
                 SubmenuSetting(
                     titleId = R.string.applets_menu,
@@ -1080,7 +1067,10 @@ class SettingsFragmentPresenter(
                     IntSetting.THEME.getValueAsString()
 
                 override val defaultValue: Int = IntSetting.THEME.defaultValue
-                override fun reset() = IntSetting.THEME.setInt(defaultValue)
+                override fun reset() {
+                    IntSetting.THEME.setInt(defaultValue)
+                    settingsViewModel.setShouldRecreate(true)
+                }
             }
 
             add(HeaderSetting(R.string.app_settings))
@@ -1094,27 +1084,6 @@ class SettingsFragmentPresenter(
             add(BooleanSetting.INVERT_CONFIRM_BACK_CONTROLLER_BUTTONS.key)
 
             add(HeaderSetting(R.string.theme_and_color))
-
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(
-                    SingleChoiceSetting(
-                        theme,
-                        titleId = R.string.change_app_theme,
-                        choicesId = R.array.themeEntriesA12,
-                        valuesId = R.array.themeValuesA12
-                    )
-                )
-            } else {
-                add(
-                    SingleChoiceSetting(
-                        theme,
-                        titleId = R.string.change_app_theme,
-                        choicesId = R.array.themeEntries,
-                        valuesId = R.array.themeValues
-                    )
-                )
-            }
 
             val themeMode: AbstractIntSetting = object : AbstractIntSetting {
                 override fun getInt(needsGlobal: Boolean): Int = IntSetting.THEME_MODE.getInt()
@@ -1135,6 +1104,35 @@ class SettingsFragmentPresenter(
                     IntSetting.THEME_MODE.setInt(defaultValue)
                     settingsViewModel.setShouldRecreate(true)
                 }
+            }
+
+            add(
+                SingleChoiceSetting(
+                    themeMode,
+                    titleId = R.string.change_theme_mode,
+                    choicesId = R.array.themeModeEntries,
+                    valuesId = R.array.themeModeValues
+                )
+            )
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(
+                    SingleChoiceSetting(
+                        theme,
+                        titleId = R.string.change_app_theme,
+                        choicesId = R.array.themeEntriesA12,
+                        valuesId = R.array.themeValuesA12
+                    )
+                )
+            } else {
+                add(
+                    SingleChoiceSetting(
+                        theme,
+                        titleId = R.string.change_app_theme,
+                        choicesId = R.array.themeEntries,
+                        valuesId = R.array.themeValues
+                    )
+                )
             }
 
             val staticThemeColor: AbstractIntSetting = object : AbstractIntSetting {
@@ -1159,15 +1157,6 @@ class SettingsFragmentPresenter(
                     settingsViewModel.setShouldRecreate(true)
                 }
             }
-
-            add(
-                SingleChoiceSetting(
-                    themeMode,
-                    titleId = R.string.change_theme_mode,
-                    choicesId = R.array.themeModeEntries,
-                    valuesId = R.array.themeModeValues
-                )
-            )
 
             if (IntSetting.THEME.getInt() != 1) {
                 add(

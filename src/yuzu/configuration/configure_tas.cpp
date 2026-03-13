@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2021 yuzu Emulator Project
@@ -9,9 +9,9 @@
 #include "common/fs/fs.h"
 #include "common/fs/path_util.h"
 #include "common/settings.h"
+#include "qt_common/config/uisettings.h"
 #include "ui_configure_tas.h"
 #include "yuzu/configuration/configure_tas.h"
-#include "qt_common/config/uisettings.h"
 
 ConfigureTasDialog::ConfigureTasDialog(QWidget* parent)
     : QDialog(parent), ui(std::make_unique<Ui::ConfigureTas>()) {
@@ -35,6 +35,8 @@ void ConfigureTasDialog::LoadConfiguration() {
     ui->tas_enable->setChecked(Settings::values.tas_enable.GetValue());
     ui->tas_loop_script->setChecked(Settings::values.tas_loop.GetValue());
     ui->tas_pause_on_load->setChecked(Settings::values.pause_tas_on_load.GetValue());
+    ui->tas_show_recording_dialog->setChecked(
+        Settings::values.tas_show_recording_dialog.GetValue());
 }
 
 void ConfigureTasDialog::ApplyConfiguration() {
@@ -42,6 +44,7 @@ void ConfigureTasDialog::ApplyConfiguration() {
     Settings::values.tas_enable.SetValue(ui->tas_enable->isChecked());
     Settings::values.tas_loop.SetValue(ui->tas_loop_script->isChecked());
     Settings::values.pause_tas_on_load.SetValue(ui->tas_pause_on_load->isChecked());
+    Settings::values.tas_show_recording_dialog.SetValue(ui->tas_show_recording_dialog->isChecked());
 }
 
 void ConfigureTasDialog::SetDirectory(DirectoryTarget target, QLineEdit* edit) {

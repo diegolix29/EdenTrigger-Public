@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2020 yuzu Emulator Project
@@ -97,12 +97,12 @@ void ConfigureCpu::Setup(const ConfigurationShared::Builder& builder) {
     UpdateGroup();
 }
 
-void ConfigureCpu::UpdateGroup()
-{
+void ConfigureCpu::UpdateGroup() {
     const u32 accuracy = accuracy_combobox->currentIndex();
     const u32 backend = backend_combobox->currentIndex();
     // TODO(crueter): see if this works on NCE
-    ui->unsafe_group->setVisible(accuracy == (u32) Settings::CpuAccuracy::Unsafe && backend == (u32) Settings::CpuBackend::Dynarmic);
+    ui->unsafe_group->setVisible(accuracy == (u32)Settings::CpuAccuracy::Unsafe &&
+                                 backend == (u32)Settings::CpuBackend::Dynarmic);
 }
 
 void ConfigureCpu::ApplyConfiguration() {

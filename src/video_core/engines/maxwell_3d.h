@@ -2258,7 +2258,7 @@ public:
             /// Returns whether the vertex array specified by index is supposed to be
             /// accessed per instance or not.
             bool IsInstancingEnabled(std::size_t index) const {
-                return is_instanced[index];
+                return bool(is_instanced[index]); //FUCK YOU MSVC
             }
         };
 
@@ -3203,7 +3203,7 @@ private:
     std::vector<u32> macro_params;
 
     /// Interpreter for the macro codes uploaded to the GPU.
-    std::optional<MacroEngine> macro_engine;
+    MacroEngine macro_engine;
 
     Upload::State upload_state;
 

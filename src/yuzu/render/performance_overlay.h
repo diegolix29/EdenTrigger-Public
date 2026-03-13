@@ -17,6 +17,8 @@ class PerformanceOverlay;
 }
 
 class QLineSeries;
+class QChart;
+class QChartView;
 class QValueAxis;
 class MainWindow;
 
@@ -32,13 +34,13 @@ protected:
 
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
-    void closeEvent(QCloseEvent *event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     void resetPosition(const QPoint& pos);
-    void updateStats(const Core::PerfStatsResults &results, const VideoCore::ShaderNotify &shaders);
+    void updateStats(const Core::PerfStatsResults& results, const VideoCore::ShaderNotify& shaders);
 
-    MainWindow *m_mainWindow = nullptr;
+    MainWindow* m_mainWindow = nullptr;
     Ui::PerformanceOverlay* ui;
 
     // colors
@@ -59,6 +61,12 @@ private:
     // drag
     QPoint m_drag_start_pos;
 
+    // fps chart
+    QLineSeries* m_fpsSeries = nullptr;
+    QChart* m_fpsChart = nullptr;
+    QChartView* m_fpsChartView = nullptr;
+    QValueAxis* m_fpsX = nullptr;
+    QValueAxis* m_fpsY = nullptr;
 
 signals:
     void closed();

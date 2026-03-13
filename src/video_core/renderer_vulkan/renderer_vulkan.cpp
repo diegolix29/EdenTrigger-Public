@@ -14,7 +14,7 @@
 
 #include <fmt/ranges.h>
 
-#include "common/logging/log.h"
+#include "common/logging.h"
 #include <ranges>
 #include "common/scope_exit.h"
 #include "common/settings.h"
@@ -137,14 +137,8 @@ try
                       memory_allocator,
                       scheduler,
                       swapchain,
-#ifdef ANDROID
                       surface)
-    ,
-#else
-                      *surface)
-    ,
-#endif
-    blit_swapchain(device_memory,
+    , blit_swapchain(device_memory,
                    device,
                    memory_allocator,
                    present_manager,

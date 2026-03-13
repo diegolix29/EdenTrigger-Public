@@ -4,7 +4,7 @@
 // SPDX-FileCopyrightText: Copyright 2020 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-#include "common/logging/log.h"
+#include "common/logging.h"
 #include "core/frontend/emu_window.h"
 #include "video_core/vulkan_common/vulkan_surface.h"
 #include "video_core/vulkan_common/vulkan_wrapper.h"
@@ -15,7 +15,7 @@ vk::SurfaceKHR CreateSurface(
     const vk::Instance& instance,
     [[maybe_unused]] const Core::Frontend::EmuWindow::WindowSystemInfo& window_info) {
     [[maybe_unused]] const vk::InstanceDispatch& dld = instance.Dispatch();
-    VkSurfaceKHR unsafe_surface = nullptr;
+    VkSurfaceKHR unsafe_surface = VkSurfaceKHR{};
 
 #ifdef _WIN32
     if (window_info.type == Core::Frontend::WindowSystemType::Windows) {

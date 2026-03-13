@@ -1,7 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
-// SPDX-License-Identifier: GPL-3.0-or-later
-
-// SPDX-FileCopyrightText: 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 package org.yuzu.yuzu_emu.fragments
@@ -24,9 +21,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.findNavController
 import com.google.android.material.transition.MaterialSharedAxis
-import org.yuzu.yuzu_emu.BuildConfig
+import org.yuzu.yuzu_emu.HomeNavigationDirections
 import org.yuzu.yuzu_emu.R
 import org.yuzu.yuzu_emu.databinding.FragmentAboutBinding
+import org.yuzu.yuzu_emu.features.settings.ui.SettingsSubscreen
 import org.yuzu.yuzu_emu.model.HomeViewModel
 import org.yuzu.yuzu_emu.utils.ViewUtils.updateMargins
 import org.yuzu.yuzu_emu.NativeLibrary
@@ -54,10 +52,10 @@ class AboutFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         homeViewModel.setStatusBarShadeVisibility(visible = false)
-
         binding.toolbarAbout.setNavigationOnClickListener {
-            binding.root.findNavController().popBackStack()
+            requireActivity().onBackPressedDispatcher.onBackPressed()
         }
 
         binding.imageLogo.setOnLongClickListener {
@@ -75,8 +73,11 @@ class AboutFragment : Fragment() {
             )
         }
         binding.buttonLicenses.setOnClickListener {
-            exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
-            binding.root.findNavController().navigate(R.id.action_aboutFragment_to_licensesFragment)
+            val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                SettingsSubscreen.LICENSES,
+                null
+            )
+            binding.root.findNavController().navigate(action)
         }
 
         val buildName = getString(R.string.app_name_suffixed)

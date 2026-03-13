@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <common/fs/path_util.h>
-#include <common/logging/log.h>
+#include <common/logging.h>
 #include <common/settings.h>
 #include <input_common/main.h>
 #include "android_config.h"
@@ -33,6 +33,12 @@ void AndroidConfig::ReadAndroidValues() {
     if (global) {
         ReadAndroidUIValues();
         ReadUIValues();
+        BeginGroup(Settings::TranslateCategory(Settings::Category::DataStorage));
+        Settings::values.ext_content_from_game_dirs = ReadBooleanSetting(
+            std::string("ext_content_from_game_dirs"),
+            std::make_optional(
+                Settings::values.ext_content_from_game_dirs.GetDefault()));
+        EndGroup();
         ReadOverlayValues();
     }
     ReadDriverValues();

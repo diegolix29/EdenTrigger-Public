@@ -8,14 +8,14 @@
 #include <QMessageBox>
 #include <QUrl>
 #include "common/fs/path_util.h"
-#include "common/logging/backend.h"
-#include "common/logging/filter.h"
+#include "common/logging.h"
 #include "common/settings.h"
 #include "core/core.h"
+#include "core/crypto/key_manager.h"
+#include "qt_common/config/uisettings.h"
 #include "ui_configure_debug.h"
 #include "yuzu/configuration/configure_debug.h"
 #include "yuzu/debugger/console.h"
-#include "qt_common/config/uisettings.h"
 
 ConfigureDebug::ConfigureDebug(const Core::System& system_, QWidget* parent)
     : QScrollArea(parent), ui{std::make_unique<Ui::ConfigureDebug>()}, system{system_} {
@@ -45,6 +45,7 @@ void ConfigureDebug::SetConfiguration() {
     ui->reporting_services->setChecked(Settings::values.reporting_services.GetValue());
     ui->dump_audio_commands->setChecked(Settings::values.dump_audio_commands.GetValue());
     ui->quest_flag->setChecked(Settings::values.quest_flag.GetValue());
+    ui->use_dev_keys->setChecked(Settings::values.use_dev_keys.GetValue());
     ui->use_debug_asserts->setChecked(Settings::values.use_debug_asserts.GetValue());
     ui->use_auto_stub->setChecked(Settings::values.use_auto_stub.GetValue());
     ui->enable_all_controllers->setChecked(Settings::values.enable_all_controllers.GetValue());
@@ -58,7 +59,8 @@ void ConfigureDebug::SetConfiguration() {
 
     // Immutable after starting
     ui->homebrew_args_edit->setEnabled(runtime_lock);
-    ui->homebrew_args_edit->setText(QString::fromStdString(Settings::values.program_args.GetValue()));
+    ui->homebrew_args_edit->setText(
+        QString::fromStdString(Settings::values.program_args.GetValue()));
     ui->toggle_console->setEnabled(runtime_lock);
     ui->toggle_console->setChecked(UISettings::values.show_console.GetValue());
     ui->fs_access_log->setEnabled(runtime_lock);
@@ -82,7 +84,8 @@ void ConfigureDebug::SetConfiguration() {
     ui->disable_macro_hle->setEnabled(runtime_lock);
     ui->disable_macro_hle->setChecked(Settings::values.disable_macro_hle.GetValue());
     ui->disable_loop_safety_checks->setEnabled(runtime_lock);
-    ui->disable_loop_safety_checks->setChecked(Settings::values.disable_shader_loop_safety_checks.GetValue());
+    ui->disable_loop_safety_checks->setChecked(
+        Settings::values.disable_shader_loop_safety_checks.GetValue());
     ui->perform_vulkan_check->setChecked(Settings::values.perform_vulkan_check.GetValue());
     ui->debug_knobs_spinbox->setValue(Settings::values.debug_knobs.GetValue());
 #ifdef YUZU_USE_QT_WEB_ENGINE
@@ -105,6 +108,7 @@ void ConfigureDebug::ApplyConfiguration() {
     Settings::values.reporting_services = ui->reporting_services->isChecked();
     Settings::values.dump_audio_commands = ui->dump_audio_commands->isChecked();
     Settings::values.quest_flag = ui->quest_flag->isChecked();
+    Settings::values.use_dev_keys = ui->use_dev_keys->isChecked();
     Settings::values.use_debug_asserts = ui->use_debug_asserts->isChecked();
     Settings::values.use_auto_stub = ui->use_auto_stub->isChecked();
     Settings::values.enable_all_controllers = ui->enable_all_controllers->isChecked();
@@ -115,7 +119,8 @@ void ConfigureDebug::ApplyConfiguration() {
     Settings::values.enable_nsight_aftermath = ui->enable_nsight_aftermath->isChecked();
     Settings::values.dump_shaders = ui->dump_shaders->isChecked();
     Settings::values.dump_macros = ui->dump_macros->isChecked();
-    Settings::values.disable_shader_loop_safety_checks = ui->disable_loop_safety_checks->isChecked();
+    Settings::values.disable_shader_loop_safety_checks =
+        ui->disable_loop_safety_checks->isChecked();
     Settings::values.disable_macro_jit = ui->disable_macro_jit->isChecked();
     Settings::values.disable_macro_hle = ui->disable_macro_hle->isChecked();
     Settings::values.extended_logging = ui->extended_logging->isChecked();
@@ -126,6 +131,7 @@ void ConfigureDebug::ApplyConfiguration() {
     Common::Log::Filter filter;
     filter.ParseFilterString(Settings::values.log_filter.GetValue());
     Common::Log::SetGlobalFilter(filter);
+    Core::Crypto::KeyManager::Instance().ReloadKeys();
 }
 
 void ConfigureDebug::changeEvent(QEvent* event) {

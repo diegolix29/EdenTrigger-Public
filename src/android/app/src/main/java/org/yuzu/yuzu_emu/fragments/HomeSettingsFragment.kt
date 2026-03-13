@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 package org.yuzu.yuzu_emu.fragments
 
 import android.Manifest
@@ -39,12 +36,15 @@ import org.yuzu.yuzu_emu.databinding.FragmentHomeSettingsBinding
 import org.yuzu.yuzu_emu.features.DocumentProvider
 import org.yuzu.yuzu_emu.features.fetcher.SpacingItemDecoration
 import org.yuzu.yuzu_emu.features.settings.model.Settings
+import org.yuzu.yuzu_emu.features.settings.ui.SettingsSubscreen
 import org.yuzu.yuzu_emu.model.DriverViewModel
 import org.yuzu.yuzu_emu.model.HomeSetting
 import org.yuzu.yuzu_emu.model.HomeViewModel
 import org.yuzu.yuzu_emu.ui.main.MainActivity
 import org.yuzu.yuzu_emu.utils.FileUtil
+import org.yuzu.yuzu_emu.utils.GpuDriverHelper
 import org.yuzu.yuzu_emu.utils.Log
+import org.yuzu.yuzu_emu.utils.ViewUtils.updateMargins
 
 class HomeSettingsFragment : Fragment() {
     private var _binding: FragmentHomeSettingsBinding? = null
@@ -71,8 +71,12 @@ class HomeSettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        homeViewModel.setStatusBarShadeVisibility(visible = true)
+        homeViewModel.setStatusBarShadeVisibility(visible = false)
         mainActivity = requireActivity() as MainActivity
+        binding.toolbarHomeSettings.setNavigationOnClickListener {
+            findNavController().popBackStack()
+        }
+        binding.toolbarHomeSettings.title = getString(R.string.preferences_settings)
 
         val optionsList: MutableList<HomeSetting> = mutableListOf<HomeSetting>().apply {
             add(
@@ -123,8 +127,11 @@ class HomeSettingsFragment : Fragment() {
                     R.string.profile_manager_description,
                     R.drawable.ic_account_circle,
                     {
-                        binding.root.findNavController()
-                            .navigate(R.id.action_homeSettingsFragment_to_profileManagerFragment)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.PROFILE_MANAGER,
+                            null
+                        )
+                        binding.root.findNavController().navigate(action)
                     }
                 )
             )
@@ -134,8 +141,10 @@ class HomeSettingsFragment : Fragment() {
                     R.string.install_gpu_driver_description,
                     R.drawable.ic_build,
                     {
-                        val action = HomeSettingsFragmentDirections
-                            .actionHomeSettingsFragmentToDriverManagerFragment(null)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.DRIVER_MANAGER,
+                            null
+                        )
                         binding.root.findNavController().navigate(action)
                     },
                     { true },
@@ -144,6 +153,23 @@ class HomeSettingsFragment : Fragment() {
                     driverViewModel.selectedDriverTitle
                 )
             )
+            if (GpuDriverHelper.isAdrenoGpu()) {
+                add(
+                    HomeSetting(
+                        R.string.freedreno_settings_title,
+                        R.string.gpu_driver_settings,
+                        R.drawable.ic_graphics,
+                        {
+                            val action =
+                                HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                                    SettingsSubscreen.FREEDRENO_SETTINGS,
+                                    null
+                                )
+                            binding.root.findNavController().navigate(action)
+                        }
+                    )
+                )
+            }
             add(
                 HomeSetting(
                     R.string.multiplayer,
@@ -160,8 +186,11 @@ class HomeSettingsFragment : Fragment() {
                     R.string.applets_description,
                     R.drawable.ic_applet,
                     {
-                        binding.root.findNavController()
-                            .navigate(R.id.action_homeSettingsFragment_to_appletLauncherFragment)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.APPLET_LAUNCHER,
+                            null
+                        )
+                        binding.root.findNavController().navigate(action)
                     },
                     { NativeLibrary.isFirmwareAvailable() },
                     R.string.applets_error_firmware,
@@ -174,8 +203,11 @@ class HomeSettingsFragment : Fragment() {
                     R.string.manage_yuzu_data_description,
                     R.drawable.ic_install,
                     {
-                        binding.root.findNavController()
-                            .navigate(R.id.action_homeSettingsFragment_to_installableFragment)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.INSTALLABLE,
+                            null
+                        )
+                        binding.root.findNavController().navigate(action)
                     }
                 )
             )
@@ -185,8 +217,11 @@ class HomeSettingsFragment : Fragment() {
                     R.string.select_games_folder_description,
                     R.drawable.ic_add,
                     {
-                        binding.root.findNavController()
-                            .navigate(R.id.action_homeSettingsFragment_to_gameFoldersFragment)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.GAME_FOLDERS,
+                            null
+                        )
+                        binding.root.findNavController().navigate(action)
                     }
                 )
             )
@@ -269,9 +304,11 @@ class HomeSettingsFragment : Fragment() {
                     R.string.about_description,
                     R.drawable.ic_info_outline,
                     {
-                        exitTransition = MaterialSharedAxis(MaterialSharedAxis.X, true)
-                        parentFragmentManager.primaryNavigationFragment?.findNavController()
-                            ?.navigate(R.id.action_homeSettingsFragment_to_aboutFragment)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.ABOUT,
+                            null
+                        )
+                        binding.root.findNavController().navigate(action)
                     }
                 )
             )
@@ -465,19 +502,22 @@ class HomeSettingsFragment : Fragment() {
     }
 
     private fun setInsets() =
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val barInsets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             val cutoutInsets = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
 
+            binding.appbarHomeSettings.updateMargins(
+                left = barInsets.left + cutoutInsets.left,
+                right = barInsets.right + cutoutInsets.right
+            )
+
             binding.scrollViewSettings.updatePadding(
-                top = barInsets.top
+                bottom = barInsets.bottom
             )
 
             binding.homeSettingsList.updatePadding(
                 left = barInsets.left + cutoutInsets.left,
-                top = cutoutInsets.top,
-                right = barInsets.right + cutoutInsets.right,
-                bottom = barInsets.bottom
+                right = barInsets.right + cutoutInsets.right
             )
 
             windowInsets

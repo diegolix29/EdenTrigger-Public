@@ -474,7 +474,7 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
         buffer_cache.BindHostStageBuffers(stage);
         PushImageDescriptors(texture_cache, guest_descriptor_queue, stage_infos[stage], rescaling,
                              samplers_it, views_it);
-        const auto& info{stage_infos[0]};
+        const auto& info{stage_infos[stage]};
         if (info.uses_render_area) {
             render_area.uses_render_area = true;
             render_area.words = {static_cast<float>(regs.surface_clip.width),
@@ -946,29 +946,27 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
         flags |= VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR;
     }
 
-    pipeline = device.GetLogical().CreateGraphicsPipeline(
-        {
-            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = flags,
-            .stageCount = static_cast<u32>(shader_stages.size()),
-            .pStages = shader_stages.data(),
-            .pVertexInputState = &vertex_input_ci,
-            .pInputAssemblyState = &input_assembly_ci,
-            .pTessellationState = &tessellation_ci,
-            .pViewportState = &viewport_ci,
-            .pRasterizationState = &rasterization_ci,
-            .pMultisampleState = &multisample_ci,
-            .pDepthStencilState = &depth_stencil_ci,
-            .pColorBlendState = &color_blend_ci,
-            .pDynamicState = &dynamic_state_ci,
-            .layout = *pipeline_layout,
-            .renderPass = render_pass,
-            .subpass = 0,
-            .basePipelineHandle = nullptr,
-            .basePipelineIndex = 0,
-        },
-        *pipeline_cache);
+    pipeline = device.GetLogical().CreateGraphicsPipeline({
+        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = flags,
+        .stageCount = static_cast<u32>(shader_stages.size()),
+        .pStages = shader_stages.data(),
+        .pVertexInputState = &vertex_input_ci,
+        .pInputAssemblyState = &input_assembly_ci,
+        .pTessellationState = &tessellation_ci,
+        .pViewportState = &viewport_ci,
+        .pRasterizationState = &rasterization_ci,
+        .pMultisampleState = &multisample_ci,
+        .pDepthStencilState = &depth_stencil_ci,
+        .pColorBlendState = &color_blend_ci,
+        .pDynamicState = &dynamic_state_ci,
+        .layout = *pipeline_layout,
+        .renderPass = render_pass,
+        .subpass = 0,
+        .basePipelineHandle = nullptr,
+        .basePipelineIndex = 0,
+    }, *pipeline_cache);
 
     // Log graphics pipeline creation
     if (Settings::values.gpu_logging_enabled.GetValue()) {

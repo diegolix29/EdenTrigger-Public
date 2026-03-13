@@ -23,9 +23,13 @@
 #include "common/assert.h"
 #include "common/fs/fs_util.h"
 #include "common/fs/path_util.h"
-#include "common/logging/log.h"
+#include "common/logging.h"
 #include "common/settings.h"
 #include "common/time_zone.h"
+
+#if defined(__linux__ ) && defined(ARCHITECTURE_arm64)
+#include <unistd.h>
+#endif
 
 namespace Settings {
 
@@ -179,7 +183,11 @@ bool IsFastmemEnabled() {
         return bool(values.cpuopt_fastmem);
     else if (values.cpu_accuracy.GetValue() == CpuAccuracy::Unsafe)
         return bool(values.cpuopt_unsafe_host_mmu);
-#if !defined(__APPLE__) && !defined(__linux__) && !defined(__ANDROID__) && !defined(_WIN32)
+#if defined(__linux__) && defined(ARCHITECTURE_arm64)
+    // Only 4kb systems support host MMU right now
+    // TODO: Support this
+    return getpagesize() == 4096;
+#elif !defined(__APPLE__) && !defined(__ANDROID__) && !defined(_WIN32) && !defined(__linux__)
     return false;
 #else
     return true;

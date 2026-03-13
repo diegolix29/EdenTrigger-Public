@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+set(CMAKE_AUTOMOC ON)
+
 add_library(qt_common STATIC
     qt_common.h
     qt_common.cpp
@@ -26,7 +28,7 @@ add_library(qt_common STATIC
     util/mod.h util/mod.cpp
 
     abstract/frontend.h abstract/frontend.cpp
-    abstract/qt_progress_dialog.h abstract/qt_progress_dialog.cpp
+    abstract/progress.h abstract/progress.cpp
 
     qt_string_lookup.h
     qt_compat.h
@@ -82,7 +84,7 @@ target_link_libraries(qt_common PRIVATE core Qt6::Core Qt6::Concurrent SimpleIni
 target_link_libraries(qt_common PUBLIC frozen::frozen-headers)
 target_link_libraries(qt_common PRIVATE gamemode::headers frontend_common)
 
-if (NOT APPLE AND ENABLE_OPENGL)
+if (ENABLE_OPENGL)
     target_compile_definitions(qt_common PUBLIC HAS_OPENGL)
 endif()
 
@@ -93,3 +95,5 @@ if (UNIX AND NOT APPLE)
         target_link_libraries(qt_common PRIVATE Qt6::GuiPrivate)
     endif()
 endif()
+
+create_target_directory_groups(qt_common)

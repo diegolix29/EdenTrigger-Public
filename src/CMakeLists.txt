@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 # SPDX-License-Identifier: GPL-3.0-or-later
+
 # SPDX-FileCopyrightText: 2018 yuzu Emulator Project
 # SPDX-License-Identifier: GPL-2.0-or-later
 
@@ -241,7 +242,6 @@ if (YUZU_CMD)
 endif()
 
 if (ENABLE_QT)
-    add_definitions(-DYUZU_QT_WIDGETS)
     add_subdirectory(qt_common)
     add_subdirectory(yuzu)
 endif()

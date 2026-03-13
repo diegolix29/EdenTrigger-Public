@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 package org.yuzu.yuzu_emu.fragments
@@ -35,6 +35,7 @@ import org.yuzu.yuzu_emu.adapters.GamePropertiesAdapter
 import org.yuzu.yuzu_emu.databinding.FragmentGamePropertiesBinding
 import org.yuzu.yuzu_emu.features.DocumentProvider
 import org.yuzu.yuzu_emu.features.settings.model.Settings
+import org.yuzu.yuzu_emu.features.settings.ui.SettingsSubscreen
 import org.yuzu.yuzu_emu.model.DriverViewModel
 import org.yuzu.yuzu_emu.model.GameProperty
 import org.yuzu.yuzu_emu.model.GamesViewModel
@@ -250,8 +251,10 @@ class GamePropertiesFragment : Fragment() {
                     R.string.info_description,
                     R.drawable.ic_info_outline,
                     action = {
-                        val action = GamePropertiesFragmentDirections
-                            .actionPerGamePropertiesFragmentToGameInfoFragment(args.game)
+                        val action = HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                            SettingsSubscreen.GAME_INFO,
+                            args.game
+                        )
                         binding.root.findNavController().navigate(action)
                     }
                 )
@@ -310,6 +313,24 @@ class GamePropertiesFragment : Fragment() {
                 )
             )
 
+            if (!args.game.isHomebrew) {
+                add(
+                    SubmenuProperty(
+                        R.string.add_ons,
+                        R.string.add_ons_description,
+                        R.drawable.ic_edit,
+                        action = {
+                            val action =
+                                HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                                    SettingsSubscreen.ADDONS,
+                                    args.game
+                                )
+                            binding.root.findNavController().navigate(action)
+                        }
+                    )
+                )
+            }
+
             if (GpuDriverHelper.supportsCustomDriverLoading()) {
                 add(
                     SubmenuProperty(
@@ -318,8 +339,11 @@ class GamePropertiesFragment : Fragment() {
                         R.drawable.ic_build,
                         detailsFlow = driverViewModel.selectedDriverTitle,
                         action = {
-                            val action = GamePropertiesFragmentDirections
-                                .actionPerGamePropertiesFragmentToDriverManagerFragment(args.game)
+                            val action =
+                                HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                                    SettingsSubscreen.DRIVER_MANAGER,
+                                    args.game
+                                )
                             binding.root.findNavController().navigate(action)
                         }
                     )
@@ -332,8 +356,11 @@ class GamePropertiesFragment : Fragment() {
                         R.string.freedreno_per_game_description,
                         R.drawable.ic_graphics,
                         action = {
-                            val action = GamePropertiesFragmentDirections
-                                .actionPerGamePropertiesFragmentToFreedrenoSettingsFragment(args.game)
+                            val action =
+                                HomeNavigationDirections.actionGlobalSettingsSubscreenActivity(
+                                    SettingsSubscreen.FREEDRENO_SETTINGS,
+                                    args.game
+                                )
                             binding.root.findNavController().navigate(action)
                         }
                     )
@@ -341,18 +368,6 @@ class GamePropertiesFragment : Fragment() {
             }
 
             if (!args.game.isHomebrew) {
-                add(
-                    SubmenuProperty(
-                        R.string.add_ons,
-                        R.string.add_ons_description,
-                        R.drawable.ic_edit,
-                        action = {
-                            val action = GamePropertiesFragmentDirections
-                                .actionPerGamePropertiesFragmentToAddonsFragment(args.game)
-                            binding.root.findNavController().navigate(action)
-                        }
-                    )
-                )
                 add(
                     InstallableProperty(
                         R.string.save_data,

@@ -709,6 +709,7 @@ struct Values {
     Setting<bool> pause_tas_on_load{linkage, true, "pause_tas_on_load", Category::Controls};
     Setting<bool> tas_enable{linkage, false, "tas_enable", Category::Controls};
     Setting<bool> tas_loop{linkage, false, "tas_loop", Category::Controls};
+    Setting<bool> tas_show_recording_dialog{linkage, true, "tas_show_recording_dialog", Category::Controls};
 
     Setting<bool> mouse_panning{
                                 linkage, false, "mouse_panning", Category::Controls, Specialization::Default, false};
@@ -759,6 +760,8 @@ struct Values {
                                         Category::DataStorage};
     Setting<std::string> gamecard_path{linkage, std::string(), "gamecard_path",
                                        Category::DataStorage};
+    Setting<bool> ext_content_from_game_dirs{linkage, true, "ext_content_from_game_dirs",
+                                             Category::DataStorage};
     std::vector<std::string> external_content_dirs;
 
     // Debugging
@@ -777,6 +780,7 @@ struct Values {
     Setting<bool> reporting_services{
                                      linkage, false, "reporting_services", Category::Debugging, Specialization::Default, false};
     Setting<bool> quest_flag{linkage, false, "quest_flag", Category::Debugging};
+    Setting<bool> use_dev_keys{linkage, false, "use_dev_keys", Category::Debugging};
     Setting<bool> disable_macro_jit{linkage, false, "disable_macro_jit",
                                     Category::DebuggingGraphics};
     Setting<bool> disable_macro_hle{linkage, false, "disable_macro_hle",
