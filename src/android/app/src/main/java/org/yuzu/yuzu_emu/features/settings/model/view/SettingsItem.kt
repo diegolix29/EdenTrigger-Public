@@ -1005,6 +1005,7 @@ abstract class SettingsItem(
                 override val isRuntimeModifiable: Boolean = false
                 override val defaultValue: Boolean = true
                 override val isSwitchable: Boolean = true
+                override val pairedSettingKey: String = ""
                 override var global: Boolean
                     get() {
                         return BooleanSetting.FASTMEM.global &&
