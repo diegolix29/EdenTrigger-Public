@@ -3,6 +3,12 @@
 include(TargetArchitectureSpecificSources)
 
 add_library(dynarmic STATIC
+    mcl/bit.hpp
+    mcl/function_info.hpp
+    mcl/integer_of_size.hpp
+    mcl/intrusive_list.hpp
+    mcl/is_instance_of_template.hpp
+
     backend/block_range_information.cpp
     backend/block_range_information.h
     backend/exception_handler.h
@@ -53,7 +59,6 @@ add_library(dynarmic STATIC
     common/fp/util.h
     common/llvm_disassemble.cpp
     common/llvm_disassemble.h
-    common/lut_from_list.h
     common/math_util.cpp
     common/math_util.h
     common/safe_ops.h
@@ -69,6 +74,7 @@ add_library(dynarmic STATIC
     frontend/decoder/matcher.h
     frontend/imm.cpp
     frontend/imm.h
+    interface/halt_reason.h
     interface/exclusive_monitor.h
     interface/optimization_flags.h
     ir/acc_type.h
@@ -353,7 +359,7 @@ set_target_properties(dynarmic PROPERTIES
 target_compile_options(dynarmic PRIVATE ${DYNARMIC_CXX_FLAGS})
 
 target_link_libraries(dynarmic PRIVATE unordered_dense::unordered_dense)
-target_link_libraries(dynarmic PUBLIC fmt::fmt merry::mcl)
+target_link_libraries(dynarmic PUBLIC fmt::fmt)
 
 if (BOOST_NO_HEADERS)
     target_link_libraries(dynarmic PRIVATE Boost::variant Boost::icl Boost::pool)

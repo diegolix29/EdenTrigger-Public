@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /* This file is part of the dynarmic project.
@@ -7,14 +7,8 @@
  */
 
 #include <bit>
-#include <mcl/mp/metavalue/lift_value.hpp>
-#include <mcl/mp/typelist/cartesian_product.hpp>
-#include <mcl/mp/typelist/get.hpp>
-#include <mcl/mp/typelist/lift_sequence.hpp>
-#include <mcl/mp/typelist/list.hpp>
-#include <mcl/mp/typelist/lower_to_tuple.hpp>
-#include <mcl/type_traits/function_info.hpp>
-#include <mcl/type_traits/integer_of_size.hpp>
+#include "dynarmic/mcl/function_info.hpp"
+#include "dynarmic/mcl/integer_of_size.hpp"
 #include <oaknut/oaknut.hpp>
 
 #include "dynarmic/backend/arm64/a32_jitstate.h"
@@ -31,7 +25,6 @@
 #include "dynarmic/common/fp/info.h"
 #include "dynarmic/common/fp/op.h"
 #include "dynarmic/common/fp/rounding_mode.h"
-#include "dynarmic/common/lut_from_list.h"
 #include "dynarmic/ir/basic_block.h"
 #include "dynarmic/ir/microinstruction.h"
 #include "dynarmic/ir/opcodes.h"
@@ -39,8 +32,6 @@
 namespace Dynarmic::Backend::Arm64 {
 
 using namespace oaknut::util;
-namespace mp = mcl::mp;
-
 using A64FullVectorWidth = std::integral_constant<size_t, 128>;
 
 // Array alias that always sizes itself according to the given type T
@@ -84,7 +75,7 @@ static void EmitTwoOpArranged(oaknut::CodeGenerator& code, EmitContext& ctx, IR:
         } else if constexpr (size == 64) {
             emit(Qresult->D2(), Qa->D2());
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<size>>);
+            UNREACHABLE();
         }
     });
 }
@@ -112,7 +103,7 @@ static void EmitThreeOpArranged(oaknut::CodeGenerator& code, EmitContext& ctx, I
         } else if constexpr (size == 64) {
             emit(Qresult->D2(), Qa->D2(), Qb->D2());
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<size>>);
+            UNREACHABLE();
         }
     });
 }
@@ -135,7 +126,7 @@ static void EmitFMA(oaknut::CodeGenerator& code, EmitContext& ctx, IR::Inst* ins
         } else if constexpr (size == 64) {
             emit(Qresult->D2(), Qm->D2(), Qn->D2());
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<size>>);
+            UNREACHABLE();
         }
     });
 }
@@ -157,7 +148,7 @@ static void EmitFromFixed(oaknut::CodeGenerator& code, EmitContext& ctx, IR::Ins
         } else if constexpr (size == 64) {
             emit(Qto->D2(), Qfrom->D2(), fbits);
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<size>>);
+            UNREACHABLE();
         }
     });
 }
@@ -179,7 +170,7 @@ void EmitToFixed(oaknut::CodeGenerator& code, EmitContext& ctx, IR::Inst* inst) 
         } else if constexpr (fsize == 64) {
             return Qto->D2();
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<fsize>>);
+            UNREACHABLE();
         }
     }();
     auto Vfrom = [&] {
@@ -188,7 +179,7 @@ void EmitToFixed(oaknut::CodeGenerator& code, EmitContext& ctx, IR::Inst* inst) 
         } else if constexpr (fsize == 64) {
             return Qfrom->D2();
         } else {
-            static_assert(Common::always_false_v<mcl::mp::lift_value<fsize>>);
+            UNREACHABLE();
         }
     }();
 

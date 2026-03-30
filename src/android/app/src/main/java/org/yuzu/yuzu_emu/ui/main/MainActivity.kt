@@ -86,8 +86,6 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
 
-        // Since Android 15, google automatically forces "games" to be 60 hrz
-        // This ensures the display's max refresh rate is actually used
         display?.let {
             val supportedModes = it.supportedModes
             val maxRefreshRate = supportedModes.maxByOrNull { mode -> mode.refreshRate }
@@ -169,6 +167,7 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
              checkForUpdates()
         }
         setInsets()
+        applyFullscreenPreference()
     }
 
     private fun checkForUpdates() {
@@ -345,6 +344,14 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
     override fun onResume() {
         ThemeHelper.setCorrectTheme(this)
         super.onResume()
+        applyFullscreenPreference()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            applyFullscreenPreference()
+        }
     }
 
     private fun setInsets() = ViewCompat.setOnApplyWindowInsetsListener(
@@ -362,6 +369,10 @@ class MainActivity : AppCompatActivity(), ThemeProvider {
         binding.navigationBarShade.layoutParams = mlpNavShade
 
         windowInsets
+    }
+
+    private fun applyFullscreenPreference() {
+        FullscreenHelper.applyToActivity(this)
     }
 
     override fun setTheme(resId: Int) {

@@ -483,8 +483,6 @@
     <string name="renderer_accuracy_description">Controls the GPU emulation mode. Most games render fine with Fast or Balanced modes, but Accurate is still required for some. Particles tend to only render correctly with Accurate mode.</string>
     <string name="dma_accuracy">DMA Accuracy</string>
     <string name="dma_accuracy_description">Controls the DMA precision accuracy. Safe precision can fix issues in some games, but it can also impact performance in some cases. If unsure, leave this on Default.</string>
-    <string name="frame_pacing_mode">Frame Pacing Mode</string>
-    <string name="frame_pacing_mode_description">Controls how the emulator manages frame pacing to reduce stuttering and make the frame rate smoother and more consistent.</string>
     <string name="anisotropic_filtering">Anisotropic filtering</string>
     <string name="anisotropic_filtering_description">Improves the quality of textures when viewed at oblique angles</string>
     <string name="vram_usage_mode">VRAM Usage Mode</string>
@@ -1066,13 +1064,6 @@
     <string name="dma_accuracy_unsafe">Unsafe</string>
     <string name="dma_accuracy_safe">Safe</string>
 
-    <!-- Frame Pacing Mode -->
-    <string name="frame_pacing_mode_target_Auto">Auto</string>
-    <string name="frame_pacing_mode_target_30">30 FPS</string>
-    <string name="frame_pacing_mode_target_60">60 FPS</string>
-    <string name="frame_pacing_mode_target_90">90 FPS</string>
-    <string name="frame_pacing_mode_target_120">120 FPS</string>
-
     <!-- ASTC Decoding Method Choices -->
     <string name="accelerate_astc_cpu" translatable="false">CPU</string>
     <string name="accelerate_astc_gpu" translatable="false">GPU</string>
@@ -1188,6 +1179,8 @@
     <string name="theme_material_you">Material You</string>
     <string name="app_settings">App Settings</string>
     <string name="theme_and_color">Theme And Color</string>
+    <string name="fullscreen_mode">Fullscreen mode</string>
+    <string name="fullscreen_mode_description">Hide Android system bars across app screens. Swipe from an edge to reveal them temporarily.</string>
 
     <!-- Theme Modes -->
     <string name="change_theme_mode">Change theme mode</string>

@@ -143,8 +143,8 @@ if (MSVC AND ARCHITECTURE_x86)
 endif()
 
 if (CXX_CLANG_CL)
+    # clang-cl prints literally 10000+ warnings without this
     add_compile_options(
-        # clang-cl prints literally 10000+ warnings without this
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-unused-command-line-argument>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-unsafe-buffer-usage>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-unused-value>
@@ -154,12 +154,12 @@ if (CXX_CLANG_CL)
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-deprecated-declarations>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-cast-function-type-mismatch>
         $<$<COMPILE_LANGUAGE:C,CXX>:/EHsc>)
-
     # REQUIRED CPU features IN Windows-amd64
     if (ARCHITECTURE_x86_64)
         add_compile_options(
             $<$<COMPILE_LANGUAGE:C,CXX>:-msse4.1>
-            $<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>)
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>
+        )
     endif()
 endif()
 
@@ -395,13 +395,15 @@ if (Boost_ADDED)
     if (NOT MSVC OR CXX_CLANG)
         # boost sucks
         if (PLATFORM_SUN)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthreads")
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthreads")
+            add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-pthreads>)
         endif()
 
-        target_compile_options(boost_heap INTERFACE -Wno-shadow)
-        target_compile_options(boost_icl INTERFACE -Wno-shadow)
-        target_compile_options(boost_asio INTERFACE -Wno-conversion -Wno-implicit-fallthrough)
+        target_compile_options(boost_heap INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-shadow>)
+        target_compile_options(boost_icl INTERFACE $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-shadow>)
+        target_compile_options(boost_asio INTERFACE
+            $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-conversion>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-implicit-fallthrough>
+        )
     endif()
 endif()
 
@@ -440,7 +442,7 @@ if (NOT YUZU_STATIC_ROOM)
     if (Opus_ADDED)
         if (MSVC AND CXX_CLANG)
             target_compile_options(opus PRIVATE
-                -Wno-implicit-function-declaration
+                $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-implicit-function-declaration>
             )
         endif()
     endif()
@@ -484,10 +486,10 @@ endfunction()
 # =============================================
 
 if (APPLE)
-    # Umbrella framework for everything GUI-related
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_library(IOKIT_LIBRARY IOKit REQUIRED)
-    set(PLATFORM_LIBRARIES ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY})
+    foreach(fw Carbon Metal Cocoa IOKit CoreVideo CoreMedia)
+        find_library(${fw}_LIBRARY ${fw} REQUIRED)
+        list(APPEND PLATFORM_LIBRARIES ${${fw}_LIBRARY})
+    endforeach()
 elseif (WIN32)
     # Target Windows 10
     add_compile_definitions(_WIN32_WINNT=0x0A00 WINVER=0x0A00)
@@ -524,7 +526,6 @@ if (NOT YUZU_STATIC_ROOM)
     find_package(SPIRV-Tools)
     find_package(sirit)
     find_package(gamemode)
-    find_package(mcl)
     find_package(frozen)
 
     if (ARCHITECTURE_riscv64)
