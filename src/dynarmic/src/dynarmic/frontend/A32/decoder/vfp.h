@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /* This file is part of the dynarmic project.
@@ -13,7 +13,7 @@
 #include <optional>
 #include <vector>
 
-#include "dynarmic/common/common_types.h"
+#include "common/common_types.h"
 
 #include "dynarmic/frontend/decoder/decoder_detail.h"
 #include "dynarmic/frontend/decoder/matcher.h"
@@ -24,7 +24,7 @@ template<typename Visitor>
 using VFPMatcher = Decoder::Matcher<Visitor, u32>;
 
 template<typename V>
-std::optional<std::reference_wrapper<const VFPMatcher<V>>> DecodeVFP(u32 instruction) {
+static std::optional<std::reference_wrapper<const VFPMatcher<V>>> DecodeVFP(u32 instruction) {
     using Table = std::vector<VFPMatcher<V>>;
     alignas(64) static const struct Tables {
         Table unconditional;
@@ -52,7 +52,7 @@ std::optional<std::reference_wrapper<const VFPMatcher<V>>> DecodeVFP(u32 instruc
 }
 
 template<typename V>
-std::optional<std::string_view> GetNameVFP(u32 inst) noexcept {
+static std::optional<std::string_view> GetNameVFP(u32 inst) noexcept {
     std::vector<std::pair<std::string_view, VFPMatcher<V>>> list = {
 #define INST(fn, name, bitstring) { name, DYNARMIC_DECODER_GET_MATCHER(VFPMatcher, fn, name, Decoder::detail::StringToArray<32>(bitstring)) },
 #include "./vfp.inc"

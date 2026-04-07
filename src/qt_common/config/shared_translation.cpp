@@ -104,10 +104,6 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
            tr("Set a custom value of CPU ticks. Higher values can increase performance, but may "
               "cause deadlocks. A range of 77-21000 is recommended."));
 
-    INSERT(Settings, vtable_bouncing, tr("Virtual Table Bouncing"),
-           tr("Bounces (by emulating a 0-valued return) any functions that triggers a prefetch "
-              "abort"));
-
     // Cpu Debug
 
     // Cpu Unsafe

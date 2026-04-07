@@ -14,9 +14,9 @@
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include "dynarmic/common/assert.h"
+#include "common/assert.h"
 #include "dynarmic/mcl/bit.hpp"
-#include "dynarmic/common/common_types.h"
+#include "common/common_types.h"
 #include <boost/container/static_vector.hpp>
 
 #include "dynarmic/backend/x64/a32_jitstate.h"
@@ -59,8 +59,10 @@ static Xbyak::Address MJitStateExtReg(A32::ExtReg reg) {
     UNREACHABLE();
 }
 
-A32EmitContext::A32EmitContext(const A32::UserConfig& conf, RegAlloc& reg_alloc, IR::Block& block)
-        : EmitContext(reg_alloc, block), conf(conf) {}
+A32EmitContext::A32EmitContext(const A32::UserConfig& conf, RegAlloc& reg_alloc, IR::Block& block, boost::container::stable_vector<Xbyak::Label>& shared_labels)
+    : EmitContext(reg_alloc, block, shared_labels)
+    , conf(conf)
+{}
 
 A32::LocationDescriptor A32EmitContext::Location() const {
     return A32::LocationDescriptor{block.Location()};
@@ -109,27 +111,44 @@ A32EmitX64::BlockDescriptor A32EmitX64::Emit(IR::Block& block) {
             gprs.reset(size_t(HostLoc::R14));
         return gprs;
     }(), any_xmm);
-    A32EmitContext ctx{conf, reg_alloc, block};
+
+    A32EmitContext ctx{conf, reg_alloc, block, shared_labels};
 
     // Start emitting.
     code.align();
     const u8* const entrypoint = code.getCurr();
+    code.mov(code.qword[rsp + ABI_SHADOW_SPACE + offsetof(StackLayout, abi_base_pointer)], rbp);
+    code.lea(rbp, code.ptr[rsp + ABI_SHADOW_SPACE + offsetof(StackLayout, abi_base_pointer) - 8]);
 
     EmitCondPrelude(ctx);
-
-    for (auto iter = block.instructions.begin(); iter != block.instructions.end(); ++iter) [[likely]] {
-        auto* inst = &*iter;
-        // Call the relevant Emit* member function.
-        switch (inst->GetOpcode()) {
-#define OPCODE(name, type, ...)                     \
-        case IR::Opcode::name:                  \
-            A32EmitX64::Emit##name(ctx, inst);  \
-            break;
-#define A32OPC(name, type, ...)                     \
-        case IR::Opcode::A32##name:             \
-            A32EmitX64::EmitA32##name(ctx, inst);\
-            break;
+    typedef void (EmitX64::*EmitHandlerFn)(EmitContext& context, IR::Inst* inst);
+    constexpr EmitHandlerFn opcode_handlers[] = {
+#define OPCODE(name, type, ...) &EmitX64::Emit##name,
+#define A32OPC(name, type, ...)
+#define A64OPC(name, type, ...)
+#include "dynarmic/ir/opcodes.inc"
+#undef OPCODE
+#undef A32OPC
+#undef A64OPC
+    };
+    typedef void (A32EmitX64::*A32EmitHandlerFn)(A32EmitContext& context, IR::Inst* inst);
+    constexpr A32EmitHandlerFn a32_handlers[] = {
+#define OPCODE(...)
+#define A32OPC(name, type, ...) &A32EmitX64::EmitA32##name,
 #define A64OPC(...)
+#include "dynarmic/ir/opcodes.inc"
+#undef OPCODE
+#undef A32OPC
+#undef A64OPC
+    };
+
+    for (auto& inst : block.instructions) {
+        auto const opcode = inst.GetOpcode();
+        // Call the relevant Emit* member function.
+        switch (opcode) {
+#define OPCODE(name, type, ...) case IR::Opcode::name: goto opcode_branch;
+#define A32OPC(name, type, ...) case IR::Opcode::A32##name: goto a32_branch;
+#define A64OPC(name, type, ...)
 #include "dynarmic/ir/opcodes.inc"
 #undef OPCODE
 #undef A32OPC
@@ -137,7 +156,14 @@ A32EmitX64::BlockDescriptor A32EmitX64::Emit(IR::Block& block) {
         default:
             UNREACHABLE();
         }
-        reg_alloc.EndOfAllocScope();
+opcode_branch:
+        (this->*opcode_handlers[size_t(opcode)])(ctx, &inst);
+        goto finish_this_inst;
+a32_branch:
+        // Update with FIRST A32 instruction
+        (this->*a32_handlers[size_t(opcode) - size_t(IR::Opcode::A32SetCheckBit)])(ctx, &inst);
+finish_this_inst:
+        ctx.reg_alloc.EndOfAllocScope();
 #ifndef NDEBUG
         if (conf.very_verbose_debugging_output)
             EmitVerboseDebuggingOutput(reg_alloc);
@@ -146,15 +172,14 @@ A32EmitX64::BlockDescriptor A32EmitX64::Emit(IR::Block& block) {
 
     reg_alloc.AssertNoMoreUses();
 
-    if (conf.enable_cycle_counting) {
+    if (conf.enable_cycle_counting)
         EmitAddCycles(block.CycleCount());
-    }
+    code.mov(rbp, code.qword[rsp + ABI_SHADOW_SPACE + offsetof(StackLayout, abi_base_pointer)]);
     EmitTerminal(block.GetTerminal(), ctx.Location().SetSingleStepping(false), ctx.IsSingleStep());
     code.int3();
 
-    for (auto& deferred_emit : ctx.deferred_emits) {
+    for (auto& deferred_emit : ctx.deferred_emits)
         deferred_emit();
-    }
     code.int3();
 
     const size_t size = size_t(code.getCurr() - entrypoint);
@@ -167,6 +192,7 @@ A32EmitX64::BlockDescriptor A32EmitX64::Emit(IR::Block& block) {
 
     auto const bdesc = RegisterBlock(descriptor, entrypoint, size);
     code.DisableWriting();
+    shared_labels.clear();
     return bdesc;
 }
 

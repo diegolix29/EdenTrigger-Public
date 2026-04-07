@@ -50,6 +50,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.navArgs
 import androidx.window.layout.FoldingFeature
 import androidx.window.layout.WindowInfoTracker
@@ -137,6 +138,8 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
 
     private var intentGame: Game? = null
     private var isCustomSettingsIntent = false
+    private var isStoppingForRomSwap = false
+    private var deferGameSetupUntilStopCompletes = false
 
     private var perfStatsRunnable: Runnable? = null
     private var socRunnable: Runnable? = null
@@ -241,6 +244,14 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             }
         }
 
+        if (emulationViewModel.isEmulationStopping.value) {
+            deferGameSetupUntilStopCompletes = true
+            if (game == null) {
+                game = args.game ?: intentGame
+            }
+            return
+        }
+
         finishGameSetup()
     }
 
@@ -263,6 +274,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             }
 
             game = gameToUse
+            emulationActivity?.updateSessionGame(gameToUse)
         } catch (e: Exception) {
             Log.error("[EmulationFragment] Error during game setup: ${e.message}")
             Toast.makeText(
@@ -337,7 +349,8 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         }
 
         emulationState = EmulationState(game!!.path) {
-            return@EmulationState driverViewModel.isInteractionAllowed.value
+            return@EmulationState driverViewModel.isInteractionAllowed.value &&
+                !isStoppingForRomSwap
         }
     }
 
@@ -896,8 +909,12 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
             }
         )
 
-        GameIconUtils.loadGameIcon(game!!, binding.loadingImage)
-        binding.loadingTitle.text = game!!.title
+        game?.let {
+            GameIconUtils.loadGameIcon(it, binding.loadingImage)
+            binding.loadingTitle.text = it.title
+        } ?: run {
+            binding.loadingTitle.text = ""
+        }
         binding.loadingTitle.isSelected = true
         binding.loadingText.isSelected = true
 
@@ -965,6 +982,12 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 ViewUtils.showView(binding.loadingIndicator)
                 ViewUtils.hideView(binding.inputContainer)
                 ViewUtils.hideView(binding.showStatsOverlayText)
+            } else if (deferGameSetupUntilStopCompletes) {
+                if (!isAdded) {
+                    return@collect
+                }
+                deferGameSetupUntilStopCompletes = false
+                finishGameSetup()
             }
         }
         emulationViewModel.drawerOpen.collect(viewLifecycleOwner) {
@@ -1001,24 +1024,22 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         }
 
         driverViewModel.isInteractionAllowed.collect(viewLifecycleOwner) {
-            if (it && !NativeLibrary.isRunning() && !NativeLibrary.isPaused()) {
-                startEmulation()
+            if (it &&
+                !isStoppingForRomSwap &&
+                !NativeLibrary.isRunning() &&
+                !NativeLibrary.isPaused()
+            ) {
+                if (!DirectoryInitialization.areDirectoriesReady) {
+                    DirectoryInitialization.start()
+                }
+
+                updateScreenLayout()
+
+                emulationState.run(emulationActivity!!.isActivityRecreated)
             }
         }
 
         driverViewModel.onLaunchGame()
-    }
-
-    private fun startEmulation(programIndex: Int = 0) {
-        if (!NativeLibrary.isRunning() && !NativeLibrary.isPaused()) {
-            if (!DirectoryInitialization.areDirectoriesReady) {
-                DirectoryInitialization.start()
-            }
-
-            updateScreenLayout()
-
-            emulationState.run(emulationActivity!!.isActivityRecreated, programIndex)
-        }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -1406,6 +1427,9 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         super.onDestroyView()
         amiiboLoadJob?.cancel()
         amiiboLoadJob = null
+        perfStatsRunnable?.let { perfStatsUpdateHandler.removeCallbacks(it) }
+        socRunnable?.let { socUpdateHandler.removeCallbacks(it) }
+        handler.removeCallbacksAndMessages(null)
         clearPausedFrame()
         _binding?.surfaceInputOverlay?.touchEventListener = null
         _binding = null
@@ -1413,7 +1437,9 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     }
 
     override fun onDetach() {
-        NativeLibrary.clearEmulationActivity()
+        if (!hasNewerEmulationFragment()) {
+            NativeLibrary.clearEmulationActivity()
+        }
         super.onDetach()
     }
 
@@ -1889,8 +1915,72 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
-        emulationState.clearSurface()
+        if (this::emulationState.isInitialized && !hasNewerEmulationFragment()) {
+            emulationState.clearSurface()
+        }
         emulationStarted = false
+    }
+
+    private fun hasNewerEmulationFragment(): Boolean {
+        val activity = emulationActivity ?: return false
+        return try {
+            val navHostFragment =
+                activity.supportFragmentManager.findFragmentById(R.id.fragment_container) as? NavHostFragment
+                    ?: return false
+            val currentFragment = navHostFragment.childFragmentManager.fragments
+                .filterIsInstance<EmulationFragment>()
+                .firstOrNull()
+            currentFragment != null && currentFragment !== this
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    // xbzk: called from EmulationActivity when a new game is loaded while this fragment is still active,
+    // to wait for the emulation thread to stop before allowing the ROM swap to proceed
+    fun notifyWhenEmulationThreadStops(onStopped: () -> Unit) {
+        if (!this::emulationState.isInitialized) {
+            onStopped()
+            return
+        }
+        val emuThread = runCatching { emulationState.emulationThread }.getOrNull()
+        if (emuThread == null || !emuThread.isAlive) {
+            onStopped()
+            return
+        }
+        Thread({
+            runCatching { emuThread.join() }
+            Handler(Looper.getMainLooper()).post {
+                onStopped()
+            }
+        }, "RomSwapWait").start()
+    }
+
+    // xbzk: called from EmulationActivity when a new game is loaded while this
+    // fragment is still active, to stop the current emulation before swapping the ROM
+    fun stopForRomSwap() {
+        if (isStoppingForRomSwap) {
+            return
+        }
+        isStoppingForRomSwap = true
+        clearPausedFrame()
+        emulationViewModel.setIsEmulationStopping(true)
+        _binding?.let {
+            binding.loadingText.setText(R.string.shutting_down)
+            ViewUtils.showView(binding.loadingIndicator)
+            ViewUtils.hideView(binding.inputContainer)
+            ViewUtils.hideView(binding.showStatsOverlayText)
+        }
+        if (this::emulationState.isInitialized) {
+            emulationState.stop()
+            if (NativeLibrary.isRunning() || NativeLibrary.isPaused()) {
+                Log.warning("[EmulationFragment] ROM swap stop fallback: forcing native stop request.")
+                NativeLibrary.stopEmulation()
+            }
+        } else {
+            NativeLibrary.stopEmulation()
+        }
+        NativeConfig.reloadGlobalConfig()
     }
 
     private fun showOverlayOptions() {
@@ -2183,6 +2273,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 state = State.STOPPED
             } else {
                 Log.warning("[EmulationFragment] Stop called while already stopped.")
+                NativeLibrary.stopEmulation()
             }
         }
 

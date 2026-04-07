@@ -29,8 +29,8 @@ object DirectoryInitialization {
         if (!areDirectoriesReady) {
             initializeInternalStorage()
             ensureKeysDirectoryExists()
-            NativeLibrary.initializeSystem(false)
             NativeConfig.initializeGlobalConfig()
+            NativeLibrary.initializeSystem(false)
             NativeLibrary.reloadProfiles()
             migrateSettings()
             areDirectoriesReady = true

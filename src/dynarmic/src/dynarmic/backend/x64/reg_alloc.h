@@ -13,7 +13,7 @@
 #include <optional>
 
 #include "boost/container/small_vector.hpp"
-#include "dynarmic/common/common_types.h"
+#include "common/common_types.h"
 #include "dynarmic/backend/x64/xbyak.h"
 #include <boost/container/static_vector.hpp>
 #include <boost/container/flat_set.hpp>
@@ -50,7 +50,7 @@ public:
     }
     inline void ReadLock() noexcept {
         ASSERT(size_t(is_being_used_count) + 1 < (std::numeric_limits<decltype(is_being_used_count)>::max)());
-        ASSERT(!is_scratch);
+        ASSERT(!bool(is_scratch));
         is_being_used_count++;
     }
     inline void WriteLock() noexcept {

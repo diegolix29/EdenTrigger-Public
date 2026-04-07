@@ -10,10 +10,10 @@
 
 #include <iterator>
 
-#include "dynarmic/common/assert.h"
+#include "common/assert.h"
 #include <boost/variant/detail/apply_visitor_binary.hpp>
 #include "dynarmic/mcl/bit.hpp"
-#include "dynarmic/common/common_types.h"
+#include "common/common_types.h"
 #include <ankerl/unordered_dense.h>
 
 #include "dynarmic/backend/x64/block_of_code.h"
@@ -32,8 +32,11 @@ namespace Dynarmic::Backend::X64 {
 
 using namespace Xbyak::util;
 
-EmitContext::EmitContext(RegAlloc& reg_alloc, IR::Block& block)
-        : reg_alloc(reg_alloc), block(block) {}
+EmitContext::EmitContext(RegAlloc& reg_alloc, IR::Block& block, boost::container::stable_vector<Xbyak::Label>& shared_labels)
+    : reg_alloc(reg_alloc)
+    , block(block)
+    , shared_labels(shared_labels)
+{}
 
 EmitContext::~EmitContext() = default;
 

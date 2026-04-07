@@ -1246,7 +1246,7 @@ if (HAS_NCE)
     target_link_libraries(core PRIVATE merry::oaknut)
 endif()
 
-if (ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64)
+if (ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64 OR ARCHITECTURE_riscv64)
     target_sources(core PRIVATE
         arm/dynarmic/arm_dynarmic.h
         arm/dynarmic/arm_dynarmic_64.cpp
@@ -1269,7 +1269,6 @@ endif()
 target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
 
 target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
 # TODO
 
