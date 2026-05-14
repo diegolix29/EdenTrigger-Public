@@ -32,7 +32,7 @@
     <string name="hide_overlay_on_controller_input">إخفاء الطبقة عند إدخال ذراع التحكم</string>
     <string name="hide_overlay_on_controller_input_description">إخفاء تلقائي لطبقة عناصر التحكم باللمس عند استخدام ذراع تحكم فعلية. تظهر الطبقة مرة أخرى عند فصل ذراع التحكم.</string>
     <string name="invert_confirm_back_controller_buttons">عكس أزرار التأكيد/الرجوع في وحدة التحكم</string>
-    <string name="invert_confirm_back_controller_buttons_description">قم بتبديل طريقة عمل زري التأكيد والرجوع في نظام Android لتتوافق مع أنماط Switch و Xbox أثناء استخدام واجهة المستخدم الخاصة بالتطبيق.</string>
+    <string name="invert_confirm_back_controller_buttons_description">تبديل طريقة التعامل مع زري «تأكيد» و«رجوع» في نظام Android لتتوافق مع أنماط أجهزة Switch وXbox أثناء استخدام واجهة المستخدم الخاصة بالتطبيق.</string>
 
     <string name="input_overlay_options">طبقة الإدخال</string>
     <string name="input_overlay_options_description">ضبط ذراع التحكم على الشاشة</string>
@@ -66,6 +66,8 @@
     <string name="show_power_info_description">عرض استهلاك الطاقة الحالي والسعة المتبقية في البطارية</string>
     <string name="show_shaders_building">عرض بناء التظليل</string>
     <string name="show_shaders_building_description">عرض عدد التظليل التي يتم بناؤها</string>
+    <string name="pipeline_worker_cores">خيوط عامل خط الأنابيب</string>
+    <string name="pipeline_worker_cores_description">قم بإدارة عدد النوى المستخدمة لبناء خطوط أنابيب Vulkan، فالقيمة الأعلى ستحسن أداء تجميع خط الأنابيب ولكن درجات الحرارة سترتفع أيضًا.</string>
     <string name="overlay_position">موضع الطبقة</string>
     <string name="overlay_position_description">حدد مكان عرض الطبقة على الشاشة</string>
     <string name="overlay_position_top_left">أعلى اليمين</string>
@@ -268,7 +270,7 @@
     <string name="product">المنتج</string>
     <string name="android_version">إصدار Android</string>
     <string name="android_security_patch">تصحيح الأمان</string>
-    <string name="build_id">معرف البناء</string>
+    <string name="build_id">معرف الإصدار</string>
     <string name="general_information">معلومات عامة</string>
     <string name="hardware">الأجهزة</string>
     <string name="supported_abis">واجهات برمجة التطبيقات المدعومة</string>
@@ -287,7 +289,7 @@
     <string name="install_amiibo_keys">تثبيت مفاتيح أميبو</string>
     <string name="install_amiibo_keys_description">مطلوب لاستخدام أميبو في اللعبة</string>
     <string name="gpu_driver_fetcher">أداة جلب برامج تشغيل وحدة المعالجة الرسومية</string>
-    <string name="gpu_driver_manager">مدير برامج تشغيل وحدة معالجة الرسومات</string>
+    <string name="gpu_driver_manager">إدارة برامج تشغيل وحدة معالجة الرسومات</string>
     <string name="install_gpu_driver_description">تثبيت برامج تشغيل بديلة لأداء أو دقة أفضل</string>
     <string name="advanced_settings">الإعدادات المتقدمة</string>
     <string name="settings_description">ضبط إعدادات المحاكي</string>
@@ -403,7 +405,7 @@
     <string name="contributors">المساهمين</string>
     <string name="contributors_description">الأشخاص الذين جعلوا تطبيق Eden لنظام Android ممكنًا</string>
     <string name="licenses_description">المشاريع التي تجعل Eden لأجهزة Android ممكنة</string>
-    <string name="build">البناء</string>
+    <string name="build">الإصدار</string>
     <string name="user_data">بيانات المستخدم</string>
     <string name="user_data_description">استيراد/تصدير جميع بيانات التطبيق.\nعند استيراد بيانات المستخدم، سيتم حذف جميع بيانات المستخدم الموجودة!\nقد يُسبب استيراد البيانات من Citron بعض المشاكل. يُنصح باستيراد جميع البيانات المطلوبة يدويًا.</string>
     <string name="exporting_user_data">جارٍ تصدير بيانات المستخدم...</string>
@@ -463,8 +465,6 @@
     <string name="fsr_sharpness">حدة FSR</string>
     <string name="fsr_sharpness_description">يحدد مدى وضوح الصورة عند استخدام التباين الديناميكي لـ FSR</string>
     <string name="renderer_anti_aliasing">طريقة مضاد التعرج</string>
-    <string name="renderer_optimize_spirv_output">تحسين مخرجات SPIRV</string>
-    <string name="renderer_optimize_spirv_output_description">يعمل على تحسين أداء برامج التظليل المجمعة لتحسين كفاءة وحدة معالجة الرسومات، ولكنه قد يؤدي إلى زيادة وقت التحميل وإبطاء السرعة في البداية.</string>
 
 
     <string name="advanced">متقدم</string>
@@ -479,8 +479,6 @@
     <string name="vram_usage_mode_description">تحكم في مدى قوة تخصيص المحاكي لذاكرة وحدة معالجة الرسومات وتحريرها.</string>
     <string name="accelerate_astc">طريقة فك ضغط ASTC</string>
     <string name="accelerate_astc_description">حدد كيفية فك ضغط نسيج ASTC للعرض: CPU (بطيء، آمن)، GPU (سريع، موصى به)، أو CPU Async (بدون توقف، قد يسبب مشاكل)</string>
-    <string name="astc_recompression">طريقة إعادة ضغط ASTC</string>
-    <string name="astc_recompression_description">حدد كيفية إعادة ضغط نسيج ASTC لتحسين التوافق والأداء. تمكين هذا الخيار يوفر VRAM ولكن قد يقلل من جودة النسيج.</string>
 
     <string name="sync_memory_operations">مزامنة عمليات الذاكرة</string>
     <string name="sync_memory_operations_description">يضمن اتساق البيانات بين عمليات الحوسبة والذاكرة. هذا الخيار قد يحل المشكلات في بعض الألعاب، ولكن قد يقلل الأداء في بعض الحالات. يبدو أن الألعاب التي تستخدم Unreal Engine 4 هي الأكثر تأثرًا.</string>
@@ -488,12 +486,16 @@
     <string name="use_disk_shader_cache_description">يقلل من التأتأة عن طريق تخزين وتحميل التظليلات التي تم إنشاؤها محليًا.</string>
     <string name="renderer_force_max_clock">إجبار السرعة القصوى (لأجهزة Adreno فقط)</string>
     <string name="renderer_force_max_clock_description">يجبر وحدة معالجة الرسومات على العمل بأقصى سرعة ممكنة (سيظل يتم تطبيق القيود الحرارية).</string>
+    <string name="renderer_asynchronous_gpu_emulation">محاكاة غير متزامنة لوحدة معالجة الرسومات</string>
+    <string name="renderer_asynchronous_gpu_emulation_description">يمكن لهذه الحيلة أن تزيد الأداء عن طريق تشغيل محاكاة وحدة معالجة الرسومات بشكل غير متزامن على حساب مشاكل الرسومات وزيادة معدلات الأعطال بسبب العمليات المتعلقة بالتوقيت.</string>
+    <string name="renderer_async_presentation">عرض غير متزامن</string>
+    <string name="renderer_async_presentation_description">يمكن لهذه الحيلة أن تزيد من الأداء عن طريق نقل عملية العرض إلى خيط معالجة منفصل على حساب مشاكل الرسوميات.</string>
     <string name="renderer_reactive_flushing">استخدم التنظيف التفاعلي</string>
     <string name="renderer_reactive_flushing_description">يحسن دقة العرض في بعض الألعاب على حساب الأداء.</string>
     <string name="enable_buffer_history">تمكين سجل التخزين المؤقت</string>
     <string name="enable_buffer_history_description">يُتيح هذا الخيار الوصول إلى حالات التخزين المؤقت السابقة. وقد يُحسّن جودة العرض وثبات الأداء في بعض الألعاب.</string>
     <string name="use_optimized_vertex_buffers">مخازن الرؤوس المُحسّنة</string>
-    <string name="use_optimized_vertex_buffers_description">يُتيح ربطًا مُحسَّنًا لمخازن الرؤوس لتحسين الأداء. يتطلب برامج تشغيل Turnip من Mesa 26.0 أو أحدث. قد يتعطل على برامج التشغيل الأقدم.</string>
+    <string name="use_optimized_vertex_buffers_description">يُتيح ربطًا مُحسَّنًا لمخازن الرؤوس لتحسين الأداء. يتطلب برامج تشغيل Mesa 26.0+ Turnip/ برامج تشغيل QCOM. قد يتعطل على برامج تشغيل Turnip القديمة (25.3 وما دون).</string>
 
     <string name="hacks">اختراقات</string>
 
@@ -502,7 +504,11 @@
     <string name="skip_cpu_inner_invalidation">تخطي إبطال صلاحية وحدة المعالجة المركزية الداخلية</string>
     <string name="skip_cpu_inner_invalidation_description">يتخطى بعض عمليات إبطال ذاكرة التخزين المؤقتة من جانب وحدة المعالجة المركزية أثناء تحديثات الذاكرة، مما يقلل من استخدام وحدة المعالجة المركزية ويحسن أداءها. قد يتسبب ذلك في حدوث أعطال أو تعطل في بعض الألعاب.</string>
     <string name="fix_bloom_effects">إصلاح تأثيرات التوهج</string>
-    <string name="fix_bloom_effects_description">يقلل من ضبابية التوهج في LA/EOW (Adreno 700)، ويزيل التوهج في Burnout. تحذير: قد يسبب ظهور خلل رسومي في ألعاب أخرى.</string>
+    <string name="fix_bloom_effects_description">يقلل من ضبابية التوهج في LA/EOW  (Adreno A6XX - A7XX/ Turnip)، ويزيل التوهج في Burnout. تحذير: قد يسبب تشوهات رسومية في ألعاب أخرى.</string>
+    <string name="emulate_bgr565">محاكاة BGR565</string>
+    <string name="emulate_bgr565_description">يُصلح مشاكل انعكاس الألوان في الألعاب أو ظهور تشوهات غريبة أو ظلال غريبة.</string>
+    <string name="rescale_hack">تفعيل ميزة إعادة التحجيم القديمة</string>
+    <string name="rescale_hack_description">يُمكّن هذا الخيار من التعامل مع عملية إعادة تحجيم الألعاب بطريقة تقليدية باستخدام مسار إعادة التحجيم السريع</string>
     <string name="renderer_asynchronous_shaders">استخدم تظليل غير متزامن</string>
     <string name="renderer_asynchronous_shaders_description">يقوم بتجميع التظليل بشكل غير متزامن. قد يقلل ذلك من التقطعات ولكنه قد يؤدي أيضًا إلى حدوث أخطاء.</string>
     <string name="gpu_unswizzle_settings">إعدادات إلغاء ترتيب بيانات وحدة معالجة الرسومات</string>
@@ -521,14 +527,10 @@
     <string name="extensions">إضافات</string>
 
     <string name="dyna_state">الحالة الديناميكية الموسعة</string>
-    <string name="dyna_state_description">يتحكم هذا الخيار في عدد الميزات التي يمكن استخدامها في حالة الديناميكية الموسعة. تسمح الأرقام الأعلى بمزيد من الميزات ويمكن أن تزيد من الأداء، ولكنها قد تسبب مشاكل مع بعض برامج التشغيل والأجهزة.</string>
+    <string name="dyna_state_description">يتحكم هذا الخيار في عدد الميزات التي يمكن استخدامها في ExtendedDynamicState (EDS). كلما زادت القيمة، قلّ عدد عمليات تجميع خط الأنابيب بناءً على الحالة الديناميكية التي يدعمها برنامج التشغيل.</string>
     <string name="disabled">معطل</string>
     <string name="vertex_input_dynamic_state">حالة ديناميكية لإدخال الرأس</string>
-    <string name="vertex_input_dynamic_state_description">يتيح ميزة الحالة الديناميكية لإدخال الرأس لتحسين الجودة والأداء.</string>
-    <string name="provoking_vertex">الرأس المثير</string>
-    <string name="provoking_vertex_description">يحسن الإضاءة ومعالجة الرؤوس في بعض الألعاب. مدعوم فقط على وحدات معالجة الرسومات Vulkan 1.0+.</string>
-    <string name="descriptor_indexing">فهرسة الوصف</string>
-    <string name="descriptor_indexing_description">يحسن معالجة النسيج والمخزن المؤقت، بالإضافة إلى طبقة الترجمة Maxwell. مدعوم من بعض وحدات معالجة الرسومات Vulkan 1.1 وجميع وحدات معالجة الرسومات Vulkan 1.2+.</string>
+    <string name="vertex_input_dynamic_state_description">يتيح تمكين هذه الميزة معالجة أكثر مرونة لمدخلات الرؤوس، مما قد يقلل من وقت تجميع خط الأنابيب في vertex/buffer.</string>
     <string name="sample_shading_fraction">تظليل العينة</string>
     <string name="sample_shading_fraction_description">يسمح هذا الخيار بتنفيذ مُظلل الأجزاء لكل عينة في جزء متعدد العينات بدلاً من تنفيذه مرة واحدة لكل جزء. يُحسّن هذا من جودة الرسومات على حساب بعض الأداء.</string>
 
@@ -633,10 +635,10 @@
     <string name="gamecube_controller">ذراع تحكم GameCube</string>
     <string name="invert_axis">عكس المحور</string>
     <string name="invert_button">عكس الزر</string>
-    <string name="toggle_button">زر التبديل</string>
+    <string name="toggle_button">زر تشغيل/إيقاف</string>
     <string name="turbo_button">زر التوربو</string>
     <string name="set_threshold">تعيين الحد الفاصل</string>
-    <string name="toggle_axis">تبديل المحور</string>
+    <string name="toggle_axis">تشغيل/إيقاف المحور</string>
     <string name="connected">متصل</string>
     <string name="use_system_vibrator">استخدم هزاز النظام</string>
     <string name="input_overlay">طبقة الإدخال</string>
@@ -662,7 +664,7 @@
 
     <!-- Miscellaneous -->
     <string name="slider_default">افتراضي</string>
-    <string name="default_string">الافتراضي</string>
+    <string name="default_string">افتراضي</string>
     <string name="loading">جارٍ التحميل…</string>
     <string name="shutting_down">جارٍ إيقاف التشغيل...</string>
     <string name="reset_setting_confirmation">هل تريد إعادة تعيين هذا الإعداد إلى قيمته الافتراضية؟</string>
@@ -688,8 +690,8 @@
     <string name="import_success">تم الاستيراد بنجاح</string>
     <string name="export_success">تم التصدير بنجاح</string>
     <string name="start">بدء</string>
-    <string name="global">المتغيرات العامة</string>
-    <string name="custom">مخصص</string>
+    <string name="global">الإعدادات العامة</string>
+    <string name="custom">الإعدادات المخصصة للعبة</string>
     <string name="import_complete">اكتمل الاستيراد</string>
     <string name="use_global_setting">استخدام الإعداد العام</string>
     <string name="operation_completed_successfully">اكتملت العملية بنجاح</string>
@@ -768,7 +770,7 @@
     <string name="info_description">معرف العنوان، المطور، الإصدار</string>
     <string name="per_game_settings">الإعدادات الخاصة للعبة</string>
     <string name="per_game_settings_description">تعديل الإعدادات الخاصة بهذه اللعبة</string>
-    <string name="launch_options">تشغيل الإعدادات</string>
+    <string name="launch_options">إعدادات التشغيل</string>
     <string name="path">المسار</string>
     <string name="program_id">معرف العنوان</string>
     <string name="developer">المطور</string>
@@ -880,13 +882,13 @@
     <!-- Emulation Menu -->
     <string name="emulation_exit">خروج من المحاكاة</string>
     <string name="emulation_done">إنهاء</string>
-    <string name="emulation_toggle_controls">تبديل أزرار التحكم</string>
+    <string name="emulation_toggle_controls">تشغيل/إيقاف أزرار التحكم</string>
     <string name="emulation_rel_stick_center">مركز العصا النسبي</string>
     <string name="emulation_dpad_slide">انزلاق الأسهم</string>
     <string name="emulation_haptics">الاهتزازات الديناميكية</string>
     <string name="emulation_show_overlay">عرض ذراع التحكم</string>
     <string name="emulation_hide_overlay">إخفاء ذراع التحكم</string>
-    <string name="emulation_toggle_all">تبديل الكل</string>
+    <string name="emulation_toggle_all">تشغيل/إيقاف الكل</string>
     <string name="emulation_control_adjust">ضبط الطبقة</string>
     <string name="emulation_control_scale">الحجم</string>
     <string name="emulation_control_opacity">الشفافية</string>
@@ -997,9 +999,6 @@
     <string name="dma_accuracy_unsafe">غير آمن</string>
     <string name="dma_accuracy_safe">آمن</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">غير مضغوط</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">محافظ</string>
     <string name="vram_usage_aggressive">عدواني</string>
 
@@ -1131,7 +1130,7 @@
     <string name="enable_overlay_description">تمكين التطبيق الصغير المدمج في Horizon. اضغط مع الاستمرار على زر الشاشة الرئيسية لمدة 1 ثانية لإظهاره.</string>
 
     <!-- Profile Management -->
-    <string name="profile_manager">مدير الملف الشخصي</string>
+    <string name="profile_manager">إدارة ملف التعريف</string>
     <string name="profile_manager_description">إدارة ملفات تعريف المستخدمين</string>
     <string name="profile_add_user">إضافة مستخدم</string>
     <string name="profile_new_user">مستخدم جديد</string>
@@ -1164,5 +1163,6 @@
     <string name="license_fidelityfx_fsr_description">تحسين الجودة بدرجة عالية من AMD</string>
     <string name="external_content">محتوى خارجي</string>
     <string name="add_folders">إضافة مجلد</string>
+    <string name="percent">%1$d%%</string>
 
 </resources>

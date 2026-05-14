@@ -467,6 +467,10 @@ bool GraphicsPipeline::ConfigureImpl(bool is_indexed) {
         bind_stage_info(4);
     }
 
+    if (regs.transform_feedback_enabled != 0) {
+        scheduler.RequestOutsideRenderPassOperationContext();
+    }
+
     buffer_cache.UpdateGraphicsBuffers(is_indexed);
     buffer_cache.BindHostGeometryBuffers(is_indexed);
 
@@ -749,12 +753,19 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
                                              : VK_CONSERVATIVE_RASTERIZATION_MODE_DISABLED_EXT,
         .extraPrimitiveOverestimationSize = 0.0f,
     };
+    const bool supports_provoking_first_mode = device.SupportsProvokingVertexFirstMode();
+    const bool supports_provoking_last_mode = device.SupportsProvokingVertexLastMode();
+    const bool requested_provoking_last_mode = key.state.provoking_vertex_last != 0;
+    const VkProvokingVertexModeEXT provoking_vertex_mode =
+        requested_provoking_last_mode
+            ? (supports_provoking_last_mode ? VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT
+                                            : VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT)
+            : (supports_provoking_first_mode ? VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT
+                                             : VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT);
     VkPipelineRasterizationProvokingVertexStateCreateInfoEXT provoking_vertex{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_PROVOKING_VERTEX_STATE_CREATE_INFO_EXT,
         .pNext = nullptr,
-        .provokingVertexMode = key.state.provoking_vertex_last != 0
-                                   ? VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT
-                                   : VK_PROVOKING_VERTEX_MODE_FIRST_VERTEX_EXT,
+        .provokingVertexMode = provoking_vertex_mode,
     };
 
     if (IsLine(input_assembly_topology) && device.IsExtLineRasterizationSupported()) {
@@ -763,7 +774,7 @@ void GraphicsPipeline::MakePipeline(VkRenderPass render_pass) {
     if (device.IsExtConservativeRasterizationSupported()) {
         conservative_raster.pNext = std::exchange(rasterization_ci.pNext, &conservative_raster);
     }
-    if (device.IsExtProvokingVertexSupported() && Settings::values.provoking_vertex.GetValue()) {
+    if (device.IsExtProvokingVertexSupported()) {
         provoking_vertex.pNext = std::exchange(rasterization_ci.pNext, &provoking_vertex);
     }
 

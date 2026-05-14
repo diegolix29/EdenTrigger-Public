@@ -330,7 +330,6 @@
     <string name="fsr_sharpness">Độ sắc nét FSR</string>
     <string name="fsr_sharpness_description">Độ sắc nét khi dùng FSR</string>
     <string name="renderer_anti_aliasing">Phương pháp khử răng cưa</string>
-    <string name="renderer_optimize_spirv_output_description">Tối ưu hóa shader đã biên dịch để cải thiện hiệu suất GPU.</string>
 
 
     <string name="dma_accuracy">Độ chính xác DMA</string>
@@ -341,8 +340,6 @@
     <string name="vram_usage_mode_description">Kiểm soát cách cấp phát bộ nhớ GPU</string>
     <string name="accelerate_astc">Phương thức giải mã ASTC</string>
     <string name="accelerate_astc_description">Chọn cách giải mã texture nén ASTC để kết xuất: CPU (chậm, an toàn), GPU (nhanh, khuyên dùng) hoặc CPU Async (không giật, có thể gây ra sự cố)</string>
-    <string name="astc_recompression">Phương thức nén lại ASTC</string>
-    <string name="astc_recompression_description">Chọn cách nén lại texture ASTC để cải thiện khả năng tương thích và hiệu suất. Bật tùy chọn này tiết kiệm VRAM nhưng có thể làm giảm chất lượng texture.</string>
 
     <string name="sync_memory_operations">Đồng bộ hoá thao tác bộ nhớ</string>
     <string name="sync_memory_operations_description">Đảm bảo tính nhất quán dữ liệu giữa các thao tác tính toán và bộ nhớ. Tùy chọn này nên khắc phục sự cố trong một số trò chơi, nhưng có thể làm giảm hiệu suất trong một số trường hợp. Các trò chơi với Unreal Engine 4 có vẻ bị ảnh hưởng nhiều nhất.</string>
@@ -358,10 +355,6 @@
     <string name="renderer_asynchronous_shaders_description">Biên dịch shader không đồng bộ. Điều này có thể giảm giật lag nhưng cũng có thể gây ra lỗi đồ họa.</string>
     <string name="dyna_state">Trạng thái động mở rộng</string>
     <string name="disabled">Đã tắt</string>
-    <string name="provoking_vertex">Đỉnh kích hoạt</string>
-    <string name="provoking_vertex_description">Cải thiện ánh sáng và xử lý đỉnh trong một số trò chơi. Chỉ được hỗ trợ trên GPU Vulkan 1.0+.</string>
-    <string name="descriptor_indexing">Lập chỉ mục bộ mô tả</string>
-    <string name="descriptor_indexing_description">Cải thiện xử lý kết cấu và bộ đệm, cũng như lớp dịch Maxwell. Được hỗ trợ bởi một số GPU Vulkan 1.1 và tất cả GPU Vulkan 1.2+.</string>
     <string name="display">Hiển thị</string>
 
     <string name="renderer_screen_layout">Hướng màn hình</string>
@@ -586,9 +579,6 @@
 
     <!-- DMA Accuracy -->
     <string name="dma_accuracy_default">Mặc định</string>
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Không nén</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Bảo thủ</string>
     <string name="vram_usage_aggressive">Mạnh</string>
 

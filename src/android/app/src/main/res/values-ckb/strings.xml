@@ -332,7 +332,6 @@
     <string name="fsr_sharpness">تیژی FSR</string>
     <string name="fsr_sharpness_description">دیاریکردنی تیژی وێنە لە کاتی بەکارهێنانی FSR</string>
     <string name="renderer_anti_aliasing">شێوازی دژە-خاوڕۆیی</string>
-    <string name="renderer_optimize_spirv_output_description">شێیدەرە کۆمپایلکراوەکان باش دەکات بۆ باشترکردنی کارایی GPU.</string>
 
 
     <string name="dma_accuracy">وردیی DMA</string>
@@ -343,8 +342,6 @@
     <string name="vram_usage_mode_description">کۆنتڕۆڵی بەکارهێنانی VRAM</string>
     <string name="accelerate_astc">ڕێگای دیکۆدکردنی ASTC</string>
     <string name="accelerate_astc_description">هەڵبژێرە چۆن تێکستوورە پەستووکراوەکانی ASTC دەکرێنەوە بۆ ڕێندرکردن: CPU (هێواش، سەلامەت)، GPU (خێرا، پێشنیارکراو)، یان CPU Async (بێ ستەتەر، لەوانەیە کێشە دروست بکات)</string>
-    <string name="astc_recompression">ڕێگای پێکهێنانەوەی ASTC</string>
-    <string name="astc_recompression_description">هەڵبژێرە چۆن تێکستوورەکانی ASTC پەستوو دەکرێنەوە بۆ باشترکردنی گونجاندن و کارایی. چالاککردنی ئەم هەڵبژاردە VRAM هەڵدەگرێت بەڵام لەوانەیە کەمکردنەوەی کوالێتی تێکستوور بکات.</string>
 
     <string name="sync_memory_operations">هاوبەشیی کردارەکانی بیرگە</string>
     <string name="sync_memory_operations_description">دڵنیایی داتا لە نێوان کردارەکانی کۆمپیوتەر و بیرگە. ئەم هەڵبژاردە کێشەکان لە هەندێک یاری چارەسەر دەکات، بەڵام لە هەندێک حاڵەت کارایی کەم دەکاتەوە. وا دیارە یارییەکانی Unreal Engine 4 زۆرترین کاریگەریان هەیە.</string>
@@ -360,10 +357,6 @@
     <string name="renderer_asynchronous_shaders_description">کۆمپایلکردنی شادەرەکان بەشێوەی ناڕێک. ئەمە ڕەنگە کەمکردنەوەی ستەتەر بکات بەڵام لەوانەیە هەڵەش دروست بکات.</string>
     <string name="dyna_state">الحالة الديناميكية الممتدة</string>
     <string name="disabled">ناچالاک</string>
-    <string name="provoking_vertex">الرأس المثير</string>
-    <string name="provoking_vertex_description">يحسن الإضاءة ومعالجة الرؤوس في بعض الألعاب. مدعوم فقط على وحدات معالجة الرسومات التي تدعم فولكان 1.0+.</string>
-    <string name="descriptor_indexing">فهرسة الواصفات</string>
-    <string name="descriptor_indexing_description">يحسن معالجة القوام والمخازن المؤقتة، بالإضافة إلى طبقة ترجمة ماكسويل. مدعوم من قبل بعض وحدات معالجة الرسومات التي تدعم فولكان 1.1 وجميع وحدات معالجة الرسومات التي تدعم فولكان 1.2+.</string>
     <string name="display">پیشاندان</string>
 
     <string name="renderer_screen_layout">ڕێکخستنی شاشە</string>
@@ -577,9 +570,6 @@
 
     <!-- DMA Accuracy -->
     <string name="dma_accuracy_default">بنەڕەتی</string>
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">پێکهێنەنەوە</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">پارێزەر</string>
     <string name="vram_usage_aggressive">توند</string>
 

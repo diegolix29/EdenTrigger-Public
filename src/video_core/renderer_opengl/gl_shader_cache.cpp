@@ -25,7 +25,7 @@
 #include "shader_recompiler/frontend/maxwell/control_flow.h"
 #include "shader_recompiler/frontend/maxwell/translate_program.h"
 #include "shader_recompiler/profile.h"
-#include "video_core/engines/draw_manager.h"
+#include "video_core/engines/maxwell_3d.h"
 #include "video_core/engines/kepler_compute.h"
 #include "video_core/engines/maxwell_3d.h"
 #include "video_core/memory_manager.h"
@@ -54,7 +54,7 @@ using VideoCommon::LoadPipelines;
 using VideoCommon::SerializePipeline;
 using Context = ShaderContext::Context;
 
-constexpr u32 CACHE_VERSION = 14;
+constexpr u32 CACHE_VERSION = 15;
 
 template <typename Container>
 auto MakeSpan(Container& container) {
@@ -181,7 +181,6 @@ ShaderCache::ShaderCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
       state_tracker{state_tracker_}, shader_notify{shader_notify_},
       use_asynchronous_shaders{device.UseAsynchronousShaders()},
       strict_context_required{device.StrictContextRequired()},
-      optimize_spirv_output{Settings::values.optimize_spirv_output.GetValue() != Settings::SpirvOptimizeMode::Never},
       profile{
           .supported_spirv = 0x00010000,
 
@@ -348,10 +347,6 @@ void ShaderCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading,
     if (!use_asynchronous_shaders) {
         workers.reset();
     }
-
-    if (Settings::values.optimize_spirv_output.GetValue() != Settings::SpirvOptimizeMode::Always) {
-        this->optimize_spirv_output = false;
-    }
 }
 
 GraphicsPipeline* ShaderCache::CurrentGraphicsPipeline() {
@@ -362,7 +357,7 @@ GraphicsPipeline* ShaderCache::CurrentGraphicsPipeline() {
     const auto& regs{maxwell3d->regs};
     graphics_key.raw = 0;
     graphics_key.early_z.Assign(regs.mandated_early_z != 0 ? 1 : 0);
-    graphics_key.gs_input_topology.Assign(maxwell3d->draw_manager->GetDrawState().topology);
+    graphics_key.gs_input_topology.Assign(maxwell3d->draw_manager.draw_state.topology);
     graphics_key.tessellation_primitive.Assign(regs.tessellation.params.domain_type.Value());
     graphics_key.tessellation_spacing.Assign(regs.tessellation.params.spacing.Value());
     graphics_key.tessellation_clockwise.Assign(
@@ -402,7 +397,7 @@ GraphicsPipeline* ShaderCache::BuiltPipeline(GraphicsPipeline* pipeline) const n
     // If games are using a small index count, we can assume these are full screen quads.
     // Usually these shaders are only used once for building textures so we can assume they
     // can't be built async
-    const auto& draw_state = maxwell3d->draw_manager->GetDrawState();
+    const auto& draw_state = maxwell3d->draw_manager.draw_state;
     if (draw_state.index_buffer.count <= 6 || draw_state.vertex_buffer.count <= 6) {
         return pipeline;
     }
@@ -537,7 +532,7 @@ std::unique_ptr<GraphicsPipeline> ShaderCache::CreateGraphicsPipeline(
             break;
         case Settings::RendererBackend::OpenGL_SPIRV:
             ConvertLegacyToGeneric(program, runtime_info);
-            sources_spirv[stage_index] = EmitSPIRV(profile, runtime_info, program, binding, this->optimize_spirv_output);
+            sources_spirv[stage_index] = EmitSPIRV(profile, runtime_info, program, binding);
             break;
         default:
             UNREACHABLE();
@@ -598,7 +593,7 @@ std::unique_ptr<ComputePipeline> ShaderCache::CreateComputePipeline(
         code = EmitGLASM(profile, info, program);
         break;
     case Settings::RendererBackend::OpenGL_SPIRV:
-        code_spirv = EmitSPIRV(profile, program, this->optimize_spirv_output);
+        code_spirv = EmitSPIRV(profile, program);
         break;
     default:
         UNREACHABLE();

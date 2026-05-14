@@ -130,7 +130,6 @@ if (YUZU_STATIC_BUILD)
 
         # these libs do not properly provide static libs/let you do it with cmake
         set(fmt_FORCE_BUNDLED ON)
-        set(SPIRV-Tools_FORCE_BUNDLED ON)
         set(SPIRV-Headers_FORCE_BUNDLED ON)
         set(zstd_FORCE_BUNDLED ON)
     endif()
@@ -168,6 +167,31 @@ if (MSVC AND NOT CXX_CLANG)
     # This was dripping into spirv, being overriden, and causing cl flag override warning
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3 /WX-")
     set(CMAKE_CXX_FLAGS_INIT "${CMAKE_CXX_FLAGS_INIT} /W3 /WX-")
+endif()
+
+# Set runtime library to MD/MDd for all configurations
+if(MSVC)
+    if (YUZU_USE_BUNDLED_QT AND ARCHITECTURE_arm64)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set(libflag MT)
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(libflag MD)
+    endif()
+
+    # Force all projects (including external dependencies) to use the same runtime
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /${libflag}")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /${libflag}d")
+    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /${libflag}")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /${libflag}d")
+
+    # Add this to ensure Cubeb uses the same runtime
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:Debug>:/${libflag}d>>
+        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:Release>:/${libflag}>>
+        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:RelWithDebInfo>:/${libflag}>>
+        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:MinSizeRel>:/${libflag}>>
+    )
 endif()
 
 # TODO(crueter): Cleanup, each dep that has a bundled option should allow to choose between bundled, external, system
@@ -267,11 +291,6 @@ endif()
 # TODO: Compat list download
 if (NOT EXISTS ${PROJECT_BINARY_DIR}/${compat_json})
     file(WRITE ${PROJECT_BINARY_DIR}/${compat_json} "")
-endif()
-
-if (YUZU_LEGACY)
-    message(WARNING "Making legacy build. Performance may suffer.")
-    add_compile_definitions(YUZU_LEGACY)
 endif()
 
 if (ARCHITECTURE_arm64 AND (ANDROID OR PLATFORM_LINUX))
@@ -425,10 +444,10 @@ if (zstd_ADDED)
     add_library(zstd::libzstd ALIAS libzstd_static)
 endif()
 
-if (NOT YUZU_STATIC_ROOM)
-    # nlohmann
-    AddJsonPackage(nlohmann)
+# nlohmann
+AddJsonPackage(nlohmann)
 
+if (NOT YUZU_STATIC_ROOM)
     # zlib
     AddJsonPackage(zlib)
 
@@ -486,7 +505,7 @@ endfunction()
 # =============================================
 
 if (APPLE)
-    foreach(fw Carbon Metal Cocoa IOKit CoreVideo CoreMedia)
+    foreach(fw Carbon Metal Cocoa IOKit CoreVideo CoreMedia Security)
         find_library(${fw}_LIBRARY ${fw} REQUIRED)
         list(APPEND PLATFORM_LIBRARIES ${${fw}_LIBRARY})
     endforeach()
@@ -523,7 +542,6 @@ if (NOT YUZU_STATIC_ROOM)
     find_package(VulkanMemoryAllocator)
     find_package(VulkanUtilityLibraries)
     find_package(SimpleIni)
-    find_package(SPIRV-Tools)
     find_package(sirit)
     find_package(gamemode)
     find_package(frozen)
@@ -693,25 +711,6 @@ if (MSVC AND CXX_CLANG)
         IMPORTED_LOCATION "${LIB_PATH}")
 
     link_libraries(llvm-mingw-runtime)
-endif()
-
-# Set runtime library to MD/MDd for all configurations
-if(MSVC)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-
-    # Force all projects (including external dependencies) to use the same runtime
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
-    set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MD")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MDd")
-
-    # Add this to ensure Cubeb uses the same runtime
-    add_compile_options(
-        $<$<CONFIG:Debug>:/MDd>
-        $<$<CONFIG:Release>:/MD>
-        $<$<CONFIG:RelWithDebInfo>:/MD>
-        $<$<CONFIG:MinSizeRel>:/MD>
-    )
 endif()
 
 add_subdirectory(src)

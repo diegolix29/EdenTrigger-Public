@@ -73,6 +73,8 @@
     <string name="show_power_info_description">Display current power draw and remaining capacity on battery</string>
     <string name="show_shaders_building">Show Shaders Building</string>
     <string name="show_shaders_building_description">Display current number of shaders being built</string>
+    <string name="pipeline_worker_cores">Pipeline Worker Threads</string>
+    <string name="pipeline_worker_cores_description">Manage the amount of cores used for building Vulkan pipelines, the higher value will improve pipeline compilation performance but temperatures will increase as well.</string>
     <string name="overlay_position">Overlay Position</string>
     <string name="overlay_position_description">Choose where the overlay is displayed on the screen</string>
     <string name="overlay_position_top_left">Top Left</string>
@@ -473,8 +475,6 @@
     <string name="fsr_sharpness">FSR sharpness</string>
     <string name="fsr_sharpness_description">Determines how sharpened the image will look while using FSR\'s dynamic contrast</string>
     <string name="renderer_anti_aliasing">Anti-aliasing method</string>
-    <string name="renderer_optimize_spirv_output">Optimize SPIRV output</string>
-    <string name="renderer_optimize_spirv_output_description">Optimizes compiled shaders to improve GPU efficiency, but may introduce longer loading times and initial slowdowns.</string>
 
 
     <string name="advanced">Advanced</string>
@@ -489,8 +489,6 @@
     <string name="vram_usage_mode_description">Control how aggressively the emulator allocates and frees GPU memory.</string>
     <string name="accelerate_astc">ASTC Decoding Method</string>
     <string name="accelerate_astc_description">Pick how ASTC-compressed textures are decoded for rendering: CPU (slow, safe), GPU (fast, recommended), or CPU Async (no stutters, may cause issues)</string>
-    <string name="astc_recompression">ASTC Recompression Method</string>
-    <string name="astc_recompression_description">Choose how ASTC textures are recompressed to improve compatibility and performance. Enabling this option saves VRAM but may lower texture quality.</string>
 
     <string name="sync_memory_operations">Sync Memory Operations</string>
     <string name="sync_memory_operations_description">Ensures data consistency between compute and memory operations. This option should fix issues in some games, but may also reduce performance in some cases. Unreal Engine 4 games often see the most significant changes thereof.</string>
@@ -498,12 +496,16 @@
     <string name="use_disk_shader_cache_description">Reduces stuttering by locally storing and loading generated shaders.</string>
     <string name="renderer_force_max_clock">Force maximum clocks (Adreno only)</string>
     <string name="renderer_force_max_clock_description">Forces the GPU to run at the maximum possible clocks (thermal constraints will still be applied).</string>
+    <string name="renderer_asynchronous_gpu_emulation">GPU async emulation</string>
+    <string name="renderer_asynchronous_gpu_emulation_description">This hack can increase performance by running GPU emulation asynchronously at the cost of graphical issues and increased crash rates by timing-related operations.</string>
+    <string name="renderer_async_presentation">Asynchronous presentation</string>
+    <string name="renderer_async_presentation_description">This hack can increase performance by moving presentation to a separate CPU thread at the cost of graphical issues.</string>
     <string name="renderer_reactive_flushing">Use reactive flushing</string>
     <string name="renderer_reactive_flushing_description">Improves rendering accuracy in some games at the cost of performance.</string>
     <string name="enable_buffer_history">Enable buffer history</string>
     <string name="enable_buffer_history_description">Enables access to previous buffer states. This option may improve rendering quality and performance consistency in some games.</string>
     <string name="use_optimized_vertex_buffers">Optimized Vertex Buffers</string>
-    <string name="use_optimized_vertex_buffers_description">Enables optimized vertex buffer binding for improved performance. Requires Mesa 26.0+ Turnip drivers. Will crash on older drivers.</string>
+    <string name="use_optimized_vertex_buffers_description">Enables optimized vertex buffer binding for improved performance. Requires Mesa 26.0+ Turnip drivers/ QCOM drivers. Will crash on older Turnip drivers (25.3 and below).</string>
 
     <string name="hacks">Hacks</string>
 
@@ -512,7 +514,11 @@
     <string name="skip_cpu_inner_invalidation">Skip CPU Inner Invalidation</string>
     <string name="skip_cpu_inner_invalidation_description">Skips certain CPU-side cache invalidations during memory updates, reducing CPU usage and improving it\'s performance. This may cause glitches or crashes on some games.</string>
     <string name="fix_bloom_effects">Fix Bloom Effects</string>
-    <string name="fix_bloom_effects_description">Reduces bloom blur in LA/EOW (Adreno 700), removes bloom in Burnout. Warning: may cause graphical artifacts in other games.</string>
+    <string name="fix_bloom_effects_description">Reduces bloom blur in LA/EOW (Adreno A6XX - A7XX/ Turnip), removes bloom in Burnout. Warning: may cause graphical artifacts in other games.</string>
+    <string name="emulate_bgr565">Emulate BGR565</string>
+    <string name="emulate_bgr565_description">Fixes problems with inverted colors in games or strange artifacts or strange shadows.</string>
+    <string name="rescale_hack">Enable Legacy Rescale Pass</string>
+    <string name="rescale_hack_description">Enables a legacy handling for the rescale configuration pass for games by using a quick rescale path</string>
     <string name="renderer_asynchronous_shaders">Use asynchronous shaders</string>
     <string name="renderer_asynchronous_shaders_description">Compiles shaders asynchronously. This may reduce stutters but may also introduce glitches.</string>
     <string name="gpu_unswizzle_settings">GPU Unswizzle Settings</string>
@@ -531,14 +537,10 @@
     <string name="extensions">Extensions</string>
 
     <string name="dyna_state">Extended Dynamic State</string>
-    <string name="dyna_state_description">Controls the number of features that can be used in Extended Dynamic State. Higher numbers allow for more features and can increase performance, but may cause issues with some drivers and vendors.</string>
+    <string name="dyna_state_description">Controls the number of features that can be used in ExtendedDynamicState (EDS). The higher value will allow to reduce the amount of pipeline compilations based on the dynamic state supported by driver.</string>
     <string name="disabled">Disabled</string>
     <string name="vertex_input_dynamic_state">Vertex Input Dynamic State</string>
-    <string name="vertex_input_dynamic_state_description">Enables vertex input dynamic state feature for better quality and performance.</string>
-    <string name="provoking_vertex">Provoking Vertex</string>
-    <string name="provoking_vertex_description">Improves lighting and vertex handling in certain games. Only supported on Vulkan 1.0+ GPUs.</string>
-    <string name="descriptor_indexing">Descriptor Indexing</string>
-    <string name="descriptor_indexing_description">Improves texture and buffer handling, as well as the Maxwell translation layer. Supported by some Vulkan 1.1 GPUs and all Vulkan 1.2+ GPUs.</string>
+    <string name="vertex_input_dynamic_state_description">Enabling this feature allows for more flexible vertex input handling, potentially reducing pipeline compilation time in vertex/buffer.</string>
     <string name="sample_shading_fraction">Sample Shading</string>
     <string name="sample_shading_fraction_description">Allows the fragment shader to execute per sample in a multi-sampled fragment instead once per fragment. Improves graphics quality at the cost of some performance.</string>
 
@@ -1069,12 +1071,7 @@
     <string name="accelerate_astc_gpu" translatable="false">GPU</string>
     <string name="accelerate_astc_async" translatable="false">CPU Async</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Uncompressed</string>
-    <string name="astc_recompression_bc1" translatable="false">BC1</string>
-    <string name="astc_recompression_bc3" translatable="false">BC3</string>
 
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Conservative</string>
     <string name="vram_usage_aggressive">Aggressive</string>
 
@@ -1818,5 +1815,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     <string name="external_content">External Content</string>
     <string name="add_folders">Add Folder</string>
+    <string name="percent">%1$d%%</string>
 
 </resources>

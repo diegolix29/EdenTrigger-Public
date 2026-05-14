@@ -45,6 +45,10 @@
 #include "video_core/vulkan_common/vulkan_wrapper.h"
 #include "video_core/gpu_logging/gpu_logging.h"
 
+#ifdef ANDROID
+#include "../../android/app/src/main/jni/android_settings.h"
+#endif
+
 namespace Vulkan {
 
 namespace {
@@ -58,7 +62,7 @@ using VideoCommon::FileEnvironment;
 using VideoCommon::GenericEnvironment;
 using VideoCommon::GraphicsEnvironment;
 
-constexpr u32 CACHE_VERSION = 16;
+constexpr u32 CACHE_VERSION = 17;
 constexpr std::array<char, 8> VULKAN_CACHE_MAGIC_NUMBER{'y', 'u', 'z', 'u', 'v', 'k', 'c', 'h'};
 
 template <typename Container>
@@ -325,13 +329,13 @@ size_t GetTotalPipelineWorkers() {
     const size_t max_core_threads =
         std::max<size_t>(static_cast<size_t>(std::thread::hardware_concurrency()), 2ULL) - 1ULL;
 #ifdef ANDROID
-    // Leave at least one core free on Android. Previously we reserved two, but
-    // shipping builds benefit from one extra compilation worker.
-    constexpr size_t free_cores = 1ULL;
-    if (max_core_threads <= free_cores) {
+    const int configured = AndroidSettings::values.pipeline_worker_count.GetValue();
+    const int clamped = std::clamp(configured, 4, 8);
+    const size_t desired = static_cast<size_t>(clamped);
+    if (desired == 0) {
         return 1ULL;
     }
-    return max_core_threads - free_cores;
+    return std::min(max_core_threads, desired);
 #else
     return max_core_threads;
 #endif
@@ -369,7 +373,6 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
       texture_cache{texture_cache_}, shader_notify{shader_notify_},
       use_asynchronous_shaders{Settings::values.use_asynchronous_shaders.GetValue()},
       use_vulkan_pipeline_cache{Settings::values.use_vulkan_driver_pipeline_cache.GetValue()},
-      optimize_spirv_output{Settings::values.optimize_spirv_output.GetValue() != Settings::SpirvOptimizeMode::Never},
       workers(device.HasBrokenParallelShaderCompiling() ? 1ULL : GetTotalPipelineWorkers(),
               "VkPipelineBuilder"),
       serialization_thread(1, "VkPipelineSerialization") {
@@ -413,6 +416,8 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
         .support_scaled_attributes = !device.MustEmulateScaledFormats(),
         .support_multi_viewport = device.SupportsMultiViewport(),
         .support_geometry_streams = device.AreTransformFeedbackGeometryStreamsSupported(),
+        .support_sampled_image_array_nonuniform_indexing =
+            device.IsSampledImageArrayNonUniformIndexingSupported(),
 
         .warp_size_potentially_larger_than_guest = device.IsWarpSizePotentiallyBiggerThanGuest(),
 
@@ -425,13 +430,12 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
                                        driver_id == VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA,
 
         .has_broken_spirv_clamp = driver_id == VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS,
-        .has_broken_spirv_position_input = driver_id == VK_DRIVER_ID_QUALCOMM_PROPRIETARY,
+        .has_broken_spirv_position_input = driver_id == false,
         .has_broken_unsigned_image_offsets = false,
         .has_broken_signed_operations = false,
         .has_broken_fp16_float_controls = driver_id == VK_DRIVER_ID_NVIDIA_PROPRIETARY,
         .ignore_nan_fp_comparisons = false,
-        .has_broken_spirv_subgroup_mask_vector_extract_dynamic =
-            driver_id == VK_DRIVER_ID_QUALCOMM_PROPRIETARY,
+        .has_broken_spirv_subgroup_mask_vector_extract_dynamic = false,
         .has_broken_robust =
             device.IsNvidia() && device.GetNvidiaArch() <= NvidiaArchitecture::Arch_Pascal,
         .min_ssbo_alignment = device.GetStorageBufferAlignment(),
@@ -448,6 +452,9 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
         .support_snorm_render_buffer = true,
         .support_viewport_index_layer = device.IsExtShaderViewportIndexLayerSupported(),
         .min_ssbo_alignment = static_cast<u32>(device.GetStorageBufferAlignment()),
+        .max_per_stage_descriptor_sampled_images = device.GetMaxPerStageDescriptorSampledImages(),
+        .max_per_stage_resources = device.GetMaxPerStageResources(),
+        .max_descriptor_set_sampled_images = device.GetMaxDescriptorSetSampledImages(),
         .support_geometry_shader_passthrough = device.IsNvGeometryShaderPassthroughSupported(),
         .support_conditional_barrier = device.SupportsConditionalBarriers(),
     };
@@ -485,11 +492,25 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
         device.IsExtExtendedDynamicState3BlendingSupported();
     dynamic_features.has_extended_dynamic_state_3_enables =
         device.IsExtExtendedDynamicState3EnablesSupported();
+    dynamic_features.has_dynamic_state3_depth_clamp_enable =
+        device.SupportsDynamicState3DepthClampEnable();
+    dynamic_features.has_dynamic_state3_logic_op_enable =
+        device.SupportsDynamicState3LogicOpEnable();
+    dynamic_features.has_dynamic_state3_line_stipple_enable =
+        device.SupportsDynamicState3LineStippleEnable();
 
     // VIDS: Independent toggle (not affected by dyna_state levels)
     dynamic_features.has_dynamic_vertex_input =
         device.IsExtVertexInputDynamicStateSupported() &&
         Settings::values.vertex_input_dynamic_state.GetValue();
+
+    dynamic_features.has_provoking_vertex = device.IsExtProvokingVertexSupported();
+    dynamic_features.has_provoking_vertex_first_mode =
+        device.SupportsProvokingVertexFirstMode();
+    dynamic_features.has_provoking_vertex_last_mode =
+        device.SupportsProvokingVertexLastMode();
+    dynamic_features.has_provoking_vertex_tf_preserve =
+        device.SupportsTransformFeedbackProvokingVertexPreservation();
 }
 
 PipelineCache::~PipelineCache() {
@@ -603,6 +624,18 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
             (key.state.dynamic_vertex_input != 0) != dynamic_features.has_dynamic_vertex_input) {
             return;
         }
+
+        const bool key_requests_provoking_last = key.state.provoking_vertex_last != 0;
+        if (key_requests_provoking_last && !dynamic_features.has_provoking_vertex_last_mode) {
+            return;
+        }
+
+        const bool key_uses_transform_feedback = key.state.xfb_enabled != 0;
+        if (key_uses_transform_feedback && key_requests_provoking_last &&
+            !dynamic_features.has_provoking_vertex_tf_preserve) {
+            return;
+        }
+
         workers.QueueWork([this, key, envs_ = std::move(envs), &state, &callback]() mutable {
             ShaderPools pools;
             boost::container::static_vector<Shader::Environment*, 5> env_ptrs;
@@ -643,10 +676,6 @@ void PipelineCache::LoadDiskResources(u64 title_id, std::stop_token stop_loading
     if (state.statistics) {
         state.statistics->Report();
     }
-
-    if (Settings::values.optimize_spirv_output.GetValue() != Settings::SpirvOptimizeMode::Always) {
-        this->optimize_spirv_output = false;
-    }
 }
 
 GraphicsPipeline* PipelineCache::CurrentGraphicsPipelineSlowPath() {
@@ -675,7 +704,7 @@ GraphicsPipeline* PipelineCache::BuiltPipeline(GraphicsPipeline* pipeline) const
     // If games are using a small index count, we can assume these are full screen quads.
     // Usually these shaders are only used once for building textures so we can assume they
     // can't be built async
-    const auto& draw_state = maxwell3d->draw_manager->GetDrawState();
+    const auto& draw_state = maxwell3d->draw_manager.draw_state;
     if (draw_state.index_buffer.count <= 6 || draw_state.vertex_buffer.count <= 6) {
         return pipeline;
     }
@@ -751,7 +780,7 @@ std::unique_ptr<GraphicsPipeline> PipelineCache::CreateGraphicsPipeline(
 
         const auto runtime_info{MakeRuntimeInfo(programs, key, program, previous_stage, device)};
         ConvertLegacyToGeneric(program, runtime_info);
-        const std::vector<u32> code{EmitSPIRV(profile, runtime_info, program, binding, this->optimize_spirv_output)};
+        const std::vector<u32> code{EmitSPIRV(profile, runtime_info, program, binding)};
         device.SaveShader(code);
         modules[stage_index] = BuildShader(device, code);
 
@@ -869,7 +898,7 @@ std::unique_ptr<ComputePipeline> PipelineCache::CreateComputePipeline(
                     max_shared_memory / 1024);
         program.shared_memory_size = max_shared_memory;
     }
-    const std::vector<u32> code{EmitSPIRV(profile, program, this->optimize_spirv_output)};
+    const std::vector<u32> code{EmitSPIRV(profile, program)};
     device.SaveShader(code);
     vk::ShaderModule spv_module{BuildShader(device, code)};
 

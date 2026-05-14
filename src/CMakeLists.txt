@@ -25,6 +25,16 @@ if (NIGHTLY_BUILD)
     add_compile_definitions(NIGHTLY_BUILD)
 endif()
 
+if (YUZU_LEGACY)
+    message(WARNING "Making legacy build. Performance may suffer.")
+    add_compile_definitions(YUZU_LEGACY)
+endif()
+
+if (GENSHIN_SPOOF)
+    message(WARNING "Making Genshin spoof build")
+    add_compile_definitions(GENSHIN_SPOOF)
+endif()
+
 # Set compilation flags
 if (MSVC AND NOT CXX_CLANG)
     set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
@@ -149,7 +159,10 @@ else()
     endif()
 
     if (ARCHITECTURE_x86_64)
-        add_compile_options(-mcx16)
+        add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>)
+        if (PLATFORM_LINUX OR PLATFORM_FREEBSD)
+            add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:-mtls-dialect=gnu2>)
+        endif()
     endif()
 
     if (APPLE AND CXX_CLANG)
@@ -175,7 +188,7 @@ else()
         add_compile_definitions(_FILE_OFFSET_BITS=64)
     endif()
 
-    if (YUZU_STATIC_BUILD AND NOT APPLE)
+    if (YUZU_STATIC_BUILD AND NOT APPLE AND NOT MSVC)
         add_compile_options(-static)
 
         # yuzu-cmd requires us to explicitly link libpthread, libgcc, and libstdc++ as static

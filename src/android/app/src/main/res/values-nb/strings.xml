@@ -332,7 +332,6 @@
     <string name="fsr_sharpness">FSR-skarphet</string>
     <string name="fsr_sharpness_description">Bestemmer bildekvalitet med FSR</string>
     <string name="renderer_anti_aliasing">Anti-aliasing-metode</string>
-    <string name="renderer_optimize_spirv_output_description">Optimaliserer den kompilerte shaderen for å forbedre GPU-effektiviteten.</string>
 
 
     <string name="dma_accuracy">DMA-nøyaktighet</string>
@@ -343,8 +342,6 @@
     <string name="vram_usage_mode_description">Kontroller minnetildeling for GPU</string>
     <string name="accelerate_astc">ASTC-dekoding</string>
     <string name="accelerate_astc_description">Velg hvordan ASTC-komprimerte teksturer skal dekodes for rendering: CPU (tregt, sikkert), GPU (raskt, anbefalt) eller CPU Async (ingen stuttering, kan forårsake problemer)</string>
-    <string name="astc_recompression">ASTC-komprimering</string>
-    <string name="astc_recompression_description">Velg hvordan ASTC-teksturer komprimeres på nytt for å forbedre kompatibilitet og ytelse. Å aktivere dette alternativet sparer VRAM, men kan redusere teksturkvaliteten.</string>
 
     <string name="sync_memory_operations">Synkroniser minneoperasjoner</string>
     <string name="sync_memory_operations_description">Sikrer datakonsistens mellom beregnings- og minneoperasjoner. Dette alternativet bør fikse problemer i noen spill, men kan redusere ytelsen i noen tilfeller. Spill med Unreal Engine 4 ser ut til å være de mest berørte.</string>
@@ -360,10 +357,6 @@
     <string name="renderer_asynchronous_shaders_description">Kompilerer shadere asynkront. Dette kan redusere rykk, men kan også forårsake grafiske feil.</string>
     <string name="dyna_state">Utvidet dynamisk tilstand</string>
     <string name="disabled">Deaktivert</string>
-    <string name="provoking_vertex">Provoserende vertex</string>
-    <string name="provoking_vertex_description">Forbedrer belysning og vertexhåndtering i enkelte spill. Støttes kun på Vulkan 1.0+ GPU-er.</string>
-    <string name="descriptor_indexing">Beskrivelsesindeksering</string>
-    <string name="descriptor_indexing_description">Forbedrer tekstur- og bufferhåndtering, samt Maxwell-oversettelseslaget. Støttes av noen Vulkan 1.1 GPU-er og alle Vulkan 1.2+ GPU-er.</string>
     <string name="display">Skjerm</string>
 
     <string name="renderer_screen_layout">Orientering</string>
@@ -590,9 +583,6 @@
 
     <!-- DMA Accuracy -->
     <string name="dma_accuracy_default">Standard</string>
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Ukomprimert</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Konservativ</string>
     <string name="vram_usage_aggressive">Aggressiv</string>
 

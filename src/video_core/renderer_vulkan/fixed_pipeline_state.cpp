@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2019 yuzu Emulator Project
@@ -12,7 +12,7 @@
 #include "common/cityhash.h"
 #include "common/common_types.h"
 #include "common/settings.h"
-#include "video_core/engines/draw_manager.h"
+#include "video_core/engines/maxwell_3d.h"
 #include "video_core/renderer_vulkan/fixed_pipeline_state.h"
 #include "video_core/renderer_vulkan/vk_state_tracker.h"
 
@@ -54,7 +54,7 @@ void RefreshXfbState(VideoCommon::TransformFeedbackState& state, const Maxwell& 
 
 void FixedPipelineState::Refresh(Tegra::Engines::Maxwell3D& maxwell3d, DynamicFeatures& features) {
     const Maxwell& regs = maxwell3d.regs;
-    const auto topology_ = maxwell3d.draw_manager->GetDrawState().topology;
+    const auto topology_ = maxwell3d.draw_manager.draw_state.topology;
 
     raw1 = 0;
     extended_dynamic_state.Assign(features.has_extended_dynamic_state ? 1 : 0);
@@ -83,7 +83,29 @@ void FixedPipelineState::Refresh(Tegra::Engines::Maxwell3D& maxwell3d, DynamicFe
     depth_enabled.Assign(regs.zeta_enable != 0 ? 1 : 0);
     depth_format.Assign(static_cast<u32>(regs.zeta.format));
     y_negate.Assign(regs.window_origin.mode != Maxwell::WindowOrigin::Mode::UpperLeft ? 1 : 0);
-    provoking_vertex_last.Assign(regs.provoking_vertex == Maxwell::ProvokingVertex::Last ? 1 : 0);
+
+    bool use_last_provoking_vertex = false;
+    const bool provoking_vertex_available = features.has_provoking_vertex;
+    const bool supports_first_mode = features.has_provoking_vertex_first_mode;
+    const bool supports_last_mode = features.has_provoking_vertex_last_mode;
+    const bool transform_feedback_active = regs.transform_feedback_enabled != 0;
+    const bool tf_preserves_provoking_vertex = features.has_provoking_vertex_tf_preserve;
+
+    if (provoking_vertex_available && (supports_first_mode || supports_last_mode)) {
+        use_last_provoking_vertex = regs.provoking_vertex == Maxwell::ProvokingVertex::Last;
+
+        if (transform_feedback_active && !tf_preserves_provoking_vertex) {
+            use_last_provoking_vertex = false;
+        }
+
+        if (use_last_provoking_vertex && !supports_last_mode) {
+            use_last_provoking_vertex = false;
+        } else if (!use_last_provoking_vertex && !supports_first_mode) {
+            use_last_provoking_vertex = true;
+        }
+    }
+
+    provoking_vertex_last.Assign(use_last_provoking_vertex ? 1 : 0);
     conservative_raster_enable.Assign(regs.conservative_raster_enable != 0 ? 1 : 0);
     smooth_lines.Assign(regs.line_anti_alias_enable != 0 ? 1 : 0);
     alpha_to_coverage_enabled.Assign(regs.anti_alias_alpha_control.alpha_to_coverage != 0 ? 1 : 0);
@@ -168,9 +190,7 @@ void FixedPipelineState::Refresh(Tegra::Engines::Maxwell3D& maxwell3d, DynamicFe
             }
         }
     }
-    if (!extended_dynamic_state_3_enables) {
-        dynamic_state.Refresh3(regs);
-    }
+    dynamic_state.Refresh3(regs, features);
     if (xfb_enabled) {
         RefreshXfbState(xfb_state, regs);
     }
@@ -273,16 +293,22 @@ void FixedPipelineState::DynamicState::Refresh2(const Maxwell& regs,
     depth_bias_enable.Assign(enabled_lut[POLYGON_OFFSET_ENABLE_LUT[topology_index]] != 0 ? 1 : 0);
 }
 
-void FixedPipelineState::DynamicState::Refresh3(const Maxwell& regs) {
-    logic_op_enable.Assign(regs.logic_op.enable != 0 ? 1 : 0);
-    depth_clamp_disabled.Assign(regs.viewport_clip_control.geometry_clip ==
-                                    Maxwell::ViewportClipControl::GeometryClip::Passthrough ||
-                                regs.viewport_clip_control.geometry_clip ==
-                                    Maxwell::ViewportClipControl::GeometryClip::FrustumXYZ ||
-                                regs.viewport_clip_control.geometry_clip ==
-                                    Maxwell::ViewportClipControl::GeometryClip::FrustumZ);
-
-    line_stipple_enable.Assign(regs.line_stipple_enable);
+void FixedPipelineState::DynamicState::Refresh3(const Maxwell& regs,
+                                                const DynamicFeatures& features) {
+    if (!features.has_dynamic_state3_logic_op_enable) {
+        logic_op_enable.Assign(regs.logic_op.enable != 0 ? 1 : 0);
+    }
+    if (!features.has_dynamic_state3_depth_clamp_enable) {
+        depth_clamp_disabled.Assign(regs.viewport_clip_control.geometry_clip ==
+                                        Maxwell::ViewportClipControl::GeometryClip::Passthrough ||
+                                    regs.viewport_clip_control.geometry_clip ==
+                                        Maxwell::ViewportClipControl::GeometryClip::FrustumXYZ ||
+                                    regs.viewport_clip_control.geometry_clip ==
+                                        Maxwell::ViewportClipControl::GeometryClip::FrustumZ);
+    }
+    if (!features.has_dynamic_state3_line_stipple_enable) {
+        line_stipple_enable.Assign(regs.line_stipple_enable);
+    }
 }
 
 size_t FixedPipelineState::Hash() const noexcept {

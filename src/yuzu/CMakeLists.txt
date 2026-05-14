@@ -245,6 +245,8 @@ add_executable(yuzu
 
     render/performance_overlay.h render/performance_overlay.cpp render/performance_overlay.ui
     libqt_common.h libqt_common.cpp
+    updater/update_dialog.h updater/update_dialog.cpp updater/update_dialog.ui
+
 )
 
 set_target_properties(yuzu PROPERTIES OUTPUT_NAME "eden")
@@ -411,6 +413,9 @@ target_link_libraries(yuzu PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(yuzu PRIVATE common core input_common frontend_common network video_core qt_common)
 target_link_libraries(yuzu PRIVATE Boost::headers glad Qt6::Widgets Qt6::Concurrent)
 target_link_libraries(yuzu PRIVATE ${PLATFORM_LIBRARIES} Threads::Threads)
+if (ENABLE_OPENGL)
+    target_link_libraries(yuzu PRIVATE glad)
+endif()
 
 if (UNIX AND NOT APPLE)
     target_link_libraries(yuzu PRIVATE Qt6::DBus)

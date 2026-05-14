@@ -45,7 +45,6 @@ Dynarmic::A64::Vector DynarmicCallbacks64::MemoryRead128(u64 vaddr) {
 std::optional<u32> DynarmicCallbacks64::MemoryReadCode(u64 vaddr) {
     if (!m_memory.IsValidVirtualAddressRange(vaddr, sizeof(u32)))
         return std::nullopt;
-//    return m_memory.Read32(vaddr);
     auto const aligned_vaddr = vaddr & ~Core::Memory::YUZU_PAGEMASK;
     if (last_code_addr != aligned_vaddr) {
         m_memory.ReadBlock(aligned_vaddr, &cached_code_page, sizeof(cached_code_page));
@@ -103,6 +102,7 @@ bool DynarmicCallbacks64::MemoryWriteExclusive128(u64 vaddr, Dynarmic::A64::Vect
 }
 
 void DynarmicCallbacks64::InstructionCacheOperationRaised(Dynarmic::A64::InstructionCacheOperation op, u64 value) {
+    last_code_addr = u64(-1); //invalidate cached page
     switch (op) {
     case Dynarmic::A64::InstructionCacheOperation::InvalidateByVAToPoU: {
         static constexpr u64 ICACHE_LINE_SIZE = 64;
@@ -128,7 +128,7 @@ void DynarmicCallbacks64::ExceptionRaised(u64 pc, Dynarmic::A64::Exception excep
     case Dynarmic::A64::Exception::SendEvent:
     case Dynarmic::A64::Exception::SendEventLocal:
     case Dynarmic::A64::Exception::Yield:
-        LOG_TRACE(Core_ARM, "ExceptionRaised(exception = {}, pc = {:08X}, code = {:08X})", static_cast<std::size_t>(exception), pc, m_memory.Read32(pc));
+        LOG_TRACE(Core_ARM, "ExceptionRaised(exception = {}, pc = {:08X}, code = {:08X}, cached = {:08X})", std::size_t(exception), pc, m_memory.Read32(pc), MemoryReadCode(pc).value_or(0));
         return;
     case Dynarmic::A64::Exception::NoExecuteFault:
         LOG_CRITICAL(Core_ARM, "Cannot execute instruction at unmapped address {:#016x}", pc);
@@ -340,7 +340,6 @@ void ArmDynarmic64::MakeJit(Common::PageTable* page_table, std::size_t address_s
         config.unsafe_optimizations = true;
         config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_UnfuseFMA;
         config.fastmem_address_space_bits = 64;
-        config.optimizations |= Dynarmic::OptimizationFlag::Unsafe_IgnoreGlobalMonitor;
         break;
     // Paranoia mode for debugging optimizations
     case Settings::CpuAccuracy::Paranoid:

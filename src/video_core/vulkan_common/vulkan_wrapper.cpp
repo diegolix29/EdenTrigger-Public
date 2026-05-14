@@ -116,8 +116,6 @@ void Load(VkDevice device, DeviceDispatch& dld) noexcept {
     X(vkCmdDrawIndirectCount);
     X(vkCmdDrawIndexedIndirectCount);
     X(vkCmdDrawIndirectByteCountEXT);
-    X(vkCmdDrawMultiEXT);
-    X(vkCmdDrawMultiIndexedEXT);
     X(vkCmdEndConditionalRenderingEXT);
     X(vkCmdEndQuery);
     X(vkCmdEndRenderPass);
@@ -125,6 +123,7 @@ void Load(VkDevice device, DeviceDispatch& dld) noexcept {
     X(vkCmdEndDebugUtilsLabelEXT);
     X(vkCmdFillBuffer);
     X(vkCmdPipelineBarrier);
+    X(vkCmdResetQueryPool);
     X(vkCmdPushConstants);
     X(vkCmdPushDescriptorSetWithTemplateKHR);
     X(vkCmdSetBlendConstants);

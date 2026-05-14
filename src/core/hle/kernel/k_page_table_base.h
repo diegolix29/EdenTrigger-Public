@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2023 yuzu Emulator Project
@@ -215,7 +215,7 @@ private:
     mutable KLightLock m_general_lock;
     mutable KLightLock m_map_physical_memory_lock;
     KLightLock m_device_map_lock;
-    std::unique_ptr<Common::PageTable> m_impl{};
+    Common::PageTable m_impl{};
     Core::Memory::Memory* m_memory{};
     KMemoryBlockManager m_memory_block_manager{};
     u32 m_allocate_option{};
@@ -223,6 +223,7 @@ private:
     bool m_is_kernel{};
     bool m_enable_aslr{};
     bool m_enable_device_address_space_merge{};
+    bool m_allowed_exec_device_mapping{};
     KMemoryBlockSlabManager* m_memory_block_slab_manager{};
     KBlockInfoManager* m_block_info_manager{};
     KResourceLimit* m_resource_limit{};
@@ -253,6 +254,10 @@ public:
     }
     bool IsAslrEnabled() const {
         return m_enable_aslr;
+    }
+
+    void AllowDeviceMappingOfExecPages() {
+        m_allowed_exec_device_mapping = true;
     }
 
     bool Contains(KProcessAddress addr) const {
@@ -300,26 +305,11 @@ public:
     }
 
 public:
-    Core::Memory::Memory& GetMemory() {
-        return *m_memory;
-    }
-
-    Core::Memory::Memory& GetMemory() const {
-        return *m_memory;
-    }
-
-    Common::PageTable& GetImpl() {
-        return *m_impl;
-    }
-
-    Common::PageTable& GetImpl() const {
-        return *m_impl;
-    }
-
-    size_t GetNumGuardPages() const {
-        return this->IsKernel() ? 1 : 4;
-    }
-
+    [[nodiscard]] Core::Memory::Memory& GetMemory() noexcept { return *m_memory; }
+    [[nodiscard]] Core::Memory::Memory const& GetMemory() const noexcept { return *m_memory; }
+    [[nodiscard]] Common::PageTable& GetImpl() noexcept { return m_impl; }
+    [[nodiscard]] Common::PageTable const& GetImpl() const noexcept { return m_impl; }
+    [[nodiscard]] size_t GetNumGuardPages() const noexcept { return this->IsKernel() ? 1 : 4; }
 protected:
     // NOTE: These three functions (Operate, Operate, FinalizeUpdate) are virtual functions
     // in Nintendo's kernel. We devirtualize them, since KPageTable is the only derived

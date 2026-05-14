@@ -143,23 +143,9 @@ abstract class SettingsItem(
             )
             put(
                 SwitchSetting(
-                    BooleanSetting.RENDERER_PROVOKING_VERTEX,
-                    titleId = R.string.provoking_vertex,
-                    descriptionId = R.string.provoking_vertex_description
-                )
-            )
-            put(
-                SwitchSetting(
                     BooleanSetting.RENDERER_VERTEX_INPUT_DYNAMIC_STATE,
                     titleId = R.string.vertex_input_dynamic_state,
                     descriptionId = R.string.vertex_input_dynamic_state_description
-                )
-            )
-            put(
-                SwitchSetting(
-                    BooleanSetting.RENDERER_DESCRIPTOR_INDEXING,
-                    titleId = R.string.descriptor_indexing,
-                    descriptionId = R.string.descriptor_indexing_description
                 )
             )
             put(
@@ -356,15 +342,6 @@ abstract class SettingsItem(
                     descriptionId = R.string.accelerate_astc_description,
                     choicesId = R.array.astcDecodingMethodNames,
                     valuesId = R.array.astcDecodingMethodValues
-                )
-            )
-            put(
-                SingleChoiceSetting(
-                    IntSetting.RENDERER_ASTC_RECOMPRESSION,
-                    titleId = R.string.astc_recompression,
-                    descriptionId = R.string.astc_recompression_description,
-                    choicesId = R.array.astcRecompressionMethodNames,
-                    valuesId = R.array.astcRecompressionMethodValues
                 )
             )
             put(
@@ -622,6 +599,16 @@ abstract class SettingsItem(
                 )
             )
             put(
+                SliderSetting(
+                    IntSetting.ANDROID_PIPELINE_WORKERS,
+                    titleId = R.string.pipeline_worker_cores,
+                    descriptionId = R.string.pipeline_worker_cores_description,
+                    min = 4,
+                    max = 8,
+                    units = "cores"
+                )
+            )
+            put(
                 SingleChoiceSetting(
                     IntSetting.RENDERER_ANTI_ALIASING,
                     titleId = R.string.renderer_anti_aliasing,
@@ -669,12 +656,17 @@ abstract class SettingsItem(
                 )
             )
             put(
-                SingleChoiceSetting(
-                    IntSetting.RENDERER_OPTIMIZE_SPIRV_OUTPUT,
-                    titleId = R.string.renderer_optimize_spirv_output,
-                    descriptionId = R.string.renderer_optimize_spirv_output_description,
-                    choicesId = R.array.optimizeSpirvOutputEntries,
-                    valuesId = R.array.optimizeSpirvOutputValues
+                SwitchSetting(
+                    BooleanSetting.RENDERER_ASYNCHRONOUS_GPU_EMULATION,
+                    titleId = R.string.renderer_asynchronous_gpu_emulation,
+                    descriptionId = R.string.renderer_asynchronous_gpu_emulation_description
+                )
+            )
+            put(
+                SwitchSetting(
+                    BooleanSetting.RENDERER_ASYNC_PRESENTATION,
+                    titleId = R.string.renderer_async_presentation,
+                    descriptionId = R.string.renderer_async_presentation_description
                 )
             )
             put(
@@ -779,6 +771,20 @@ abstract class SettingsItem(
                     BooleanSetting.FIX_BLOOM_EFFECTS,
                     titleId = R.string.fix_bloom_effects,
                     descriptionId = R.string.fix_bloom_effects_description
+                )
+            )
+            put(
+                SwitchSetting(
+                    BooleanSetting.RESCALE_HACK,
+                    titleId = R.string.rescale_hack,
+                    descriptionId = R.string.rescale_hack_description
+                )
+            )
+            put(
+                SwitchSetting(
+                    BooleanSetting.EMULATE_BGR565,
+                    titleId = R.string.emulate_bgr565,
+                    descriptionId = R.string.emulate_bgr565_description
                 )
             )
             put(

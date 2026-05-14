@@ -351,7 +351,6 @@
     <string name="fsr_sharpness">FSR élesség</string>
     <string name="fsr_sharpness_description">Meghatározza, milyen éles lesz a kép az FSR dinamikus kontraszt használata közben.</string>
     <string name="renderer_anti_aliasing">Élsimítási módszer</string>
-    <string name="renderer_optimize_spirv_output_description">Optimalizálja a lefordított shadert a GPU hatékonyságának javításáért.</string>
 
 
     <string name="dma_accuracy">DMA pontosság</string>
@@ -362,8 +361,6 @@
     <string name="vram_usage_mode_description">GPU memória kezelésének módja</string>
     <string name="accelerate_astc">ASTC dekódolási módszer</string>
     <string name="accelerate_astc_description">Válassza ki, hogyan legyenek dekódolva az ASTC tömörített textúrák a rendereléshez: CPU (lassú, biztonságos), GPU (gyors, ajánlott) vagy CPU Async (nincs megakadás, de problémákat okozhat)</string>
-    <string name="astc_recompression">ASTC újratömörítési módszer</string>
-    <string name="astc_recompression_description">Válassza ki, hogyan történik az ASTC textúrák újratömörítése a kompatibilitás és a teljesítmény javításáért. Ez az opció VRAM-ot takarít meg, de csökkentheti a textúra minőségét.</string>
 
     <string name="sync_memory_operations">Memória-műveletek szinkronizálása</string>
     <string name="sync_memory_operations_description">Biztosítja az adatok konzisztenciáját a számítási és memória-műveletek között. Ez az opciónak javítania kell néhány játékban előforduló problémát, de bizonyos esetekben csökkentheti a teljesítményt. Az Unreal Engine 4-et használó játékok látszanak a legérintettebbek.</string>
@@ -379,10 +376,6 @@
     <string name="renderer_asynchronous_shaders_description">A shaderek aszinkron fordítása. Csökkentheti a belassulásokat, de hibákat is okozhat.</string>
     <string name="dyna_state">Kiterjesztett Dinamikus Állapot</string>
     <string name="disabled">Letiltva</string>
-    <string name="provoking_vertex">Provokáló csúcs</string>
-    <string name="provoking_vertex_description">Javítja a világítást és a csúcskezelést bizonyos játékokban. Csak Vulkan 1.0+ GPU-kon támogatott.</string>
-    <string name="descriptor_indexing">Deskriptor Indexelés</string>
-    <string name="descriptor_indexing_description">Javítja a textúrák és pufferek kezelését, valamint a Maxwell fordítási réteget. Néhány Vulkan 1.1 GPU és minden Vulkan 1.2+ GPU támogatja.</string>
     <string name="display">Kijelző</string>
 
     <string name="renderer_screen_layout">Orientáció</string>
@@ -711,9 +704,6 @@
 
     <!-- DMA Accuracy -->
     <string name="dma_accuracy_default">Alapértelmezett</string>
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Tömörítetlen</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Konzervatív</string>
     <string name="vram_usage_aggressive">Aggresszív</string>
 

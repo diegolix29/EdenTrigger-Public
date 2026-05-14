@@ -355,7 +355,6 @@
     <string name="fsr_sharpness">Nitidez do FSR</string>
     <string name="fsr_sharpness_description">Determina a nitidez da imagem ao usar contraste dinâmico do FSR</string>
     <string name="renderer_anti_aliasing">Método de Anti-Serrilhado</string>
-    <string name="renderer_optimize_spirv_output_description">Otimiza o shader compilado para melhorar a eficiência da GPU.</string>
 
 
     <string name="dma_accuracy">Precisão da DMA</string>
@@ -366,8 +365,6 @@
     <string name="vram_usage_mode_description">Controla alocação de memória GPU.</string>
     <string name="accelerate_astc">Método ASTC</string>
     <string name="accelerate_astc_description">Escolha como as texturas comprimidas em ASTC são descodificadas para renderização: CPU (lento, seguro), GPU (rápido, recomendado) ou CPU Async (sem engasgos, pode causar problemas)</string>
-    <string name="astc_recompression">Recompressão ASTC</string>
-    <string name="astc_recompression_description">Escolha como as texturas ASTC são recomprimidas para melhorar a compatibilidade e o desempenho. Ativar esta opção poupa VRAM, mas pode reduzir a qualidade da textura.</string>
 
     <string name="sync_memory_operations">Sincronizar Operações de Memória</string>
     <string name="sync_memory_operations_description">Garante a consistência dos dados entre operações de computação e memória. Esta opção deve corrigir problemas em alguns jogos, mas pode reduzir o desempenho nalguns casos. Os jogos com Unreal Engine 4 parecem ser os mais afectados.</string>
@@ -383,10 +380,6 @@
     <string name="renderer_asynchronous_shaders_description">Compila shaders de forma assíncrona. Isto pode reduzir engasgadelas, mas também pode introduzir falhas gráficas.</string>
     <string name="dyna_state">Estado Dinâmico Estendido</string>
     <string name="disabled">Desativado</string>
-    <string name="provoking_vertex">Vértice provocante</string>
-    <string name="provoking_vertex_description">Melhora a iluminação e o tratamento de vértices em certos jogos. Suportado apenas em GPUs Vulkan 1.0+.</string>
-    <string name="descriptor_indexing">Indexação de descritores</string>
-    <string name="descriptor_indexing_description">Melhora o tratamento de texturas e buffers, assim como a camada de tradução Maxwell. Suportado por algumas GPUs Vulkan 1.1 e todas Vulkan 1.2+.</string>
     <string name="display">Ecrã</string>
 
     <string name="renderer_screen_layout">Oriantação</string>
@@ -723,9 +716,6 @@ uma tentativa de mapeamento automático</string>
 
     <!-- DMA Accuracy -->
     <string name="dma_accuracy_default">Predefinido</string>
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Não Comprimido</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Conservador</string>
     <string name="vram_usage_aggressive">Agressivo</string>
 

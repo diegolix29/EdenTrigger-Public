@@ -55,7 +55,7 @@
     <string name="stats_overlay_options_description">配置性能统计叠加层中显示的信息</string>
     <string name="show_fps">显示帧率</string>
     <string name="show_fps_description">显示当前帧率</string>
-    <string name="show_frametime">显示帧时间</string>
+    <string name="show_frametime">显示 Frametime</string>
     <string name="show_app_ram_usage">显示应用内存使用情况</string>
     <string name="show_app_ram_usage_description">显示模拟器内存用量</string>
     <string name="show_system_ram_usage">显示系统内存使用情况</string>
@@ -453,8 +453,6 @@
     <string name="fsr_sharpness">FSR 锐化度</string>
     <string name="fsr_sharpness_description">指定使用 FSR 时图像的锐化程度</string>
     <string name="renderer_anti_aliasing">抗锯齿方式</string>
-    <string name="renderer_optimize_spirv_output">优化 SPIRV 输出</string>
-    <string name="renderer_optimize_spirv_output_description">优化编译后的着色器以提高GPU效率。</string>
 
 
     <string name="advanced">高级</string>
@@ -469,8 +467,6 @@
     <string name="vram_usage_mode_description">控制显存分配策略</string>
     <string name="accelerate_astc">ASTC解码方式</string>
     <string name="accelerate_astc_description">选择ASTC压缩纹理的解码方式：CPU（慢速、安全）、GPU（快速、推荐）或CPU异步（无卡顿，可能导致问题）</string>
-    <string name="astc_recompression">ASTC重压缩方式</string>
-    <string name="astc_recompression_description">选择ASTC纹理的重新压缩方式以提高兼容性和性能。启用此选项可节省VRAM，但可能会降低纹理质量。</string>
 
     <string name="sync_memory_operations">同步内存操作</string>
     <string name="sync_memory_operations_description">确保计算和内存操作之间的数据一致性。 此选项应能修复某些游戏中的问题，但在某些情况下可能会降低性能。 使用Unreal Engine 4的游戏似乎受影响最大。</string>
@@ -478,21 +474,23 @@
     <string name="use_disk_shader_cache_description">将生成的着色器缓存于磁盘中并进行读取，以减少卡顿。</string>
     <string name="renderer_force_max_clock">强制最大时钟 (仅限 Adreno)</string>
     <string name="renderer_force_max_clock_description">强制 GPU 以最大时钟运行 (仍被温控限制)。</string>
+    <string name="renderer_asynchronous_gpu_emulation">GPU 异步模拟</string>
+    <string name="renderer_async_presentation">异步呈现</string>
     <string name="renderer_reactive_flushing">启用反应性刷新</string>
-    <string name="renderer_reactive_flushing_description">牺牲性能，提高某些游戏的渲染精度。</string>
+    <string name="renderer_reactive_flushing_description">通过牺牲性能来提高某些游戏的渲染精度。</string>
     <string name="enable_buffer_history">启用缓冲区历史</string>
-    <string name="enable_buffer_history_description">允许访问之前的缓冲状态。\n这个选项可能会提升某些游戏的渲染质量和性能一致性。</string>
+    <string name="enable_buffer_history_description">启用对先前缓冲区状态的访问。此选项可在某些游戏中提升渲染质量并保持性能的一致性。</string>
     <string name="use_optimized_vertex_buffers">优化顶点缓冲区</string>
-    <string name="use_optimized_vertex_buffers_description">实现优化顶点缓冲区绑定以提升性能。需要 Mesa 26.0+ Turnip 驱动。老驱动会崩溃。</string>
-
     <string name="hacks">Hacks</string>
 
     <string name="fast_gpu_time">GPU 超频频率</string>
-    <string name="fast_gpu_time_description">强制大多数游戏以其最高原生分辨率运行。使用 256 以获得最大性能，使用 512 以获得最大图形保真度。</string>
+    <string name="fast_gpu_time_description">强制大多数游戏以其最高原生分辨率运行。设置为 256 可获得最佳性能，设置为 512 可获得最佳画面保真度。</string>
     <string name="skip_cpu_inner_invalidation">跳过CPU内部无效化</string>
     <string name="skip_cpu_inner_invalidation_description">在内存更新期间跳过某些CPU端缓存无效化，减少CPU使用率并提高其性能。可能会导致某些游戏出现故障或崩溃。</string>
-    <string name="fix_bloom_effects">修复泛光效果</string>
-    <string name="fix_bloom_effects_description">减少《塞尔达传说：智慧的再现》(LA/EOW) 在 Adreno 700 系列 GPU 上的模糊感，并移除《横冲直撞》(Burnout) 中的模糊特效。警告：可能会导致其他游戏出现画面花屏或异常。</string>
+    <string name="fix_bloom_effects">修复 Bloom 效果</string>
+    <string name="fix_bloom_effects_description">减少《塞尔达传说：智慧的再现》（Adreno A6XX - A7XX/ Turnip）中的 bloom 模糊，并移除《Burnout》中的 bloom 效果。警告：可能会导致在其他游戏中出现图形异常。</string>
+    <string name="emulate_bgr565">模拟 BGR565</string>
+    <string name="emulate_bgr565_description">修复了游戏中的颜色反转以及出现的异常画面瑕疵或奇怪阴影问题</string>
     <string name="renderer_asynchronous_shaders">使用异步着色器</string>
     <string name="renderer_asynchronous_shaders_description">异步编译着色器。这可能会减少卡顿，但也可能会导致图形错误。</string>
     <string name="gpu_unswizzle_settings">GPU 还原设置</string>
@@ -511,14 +509,8 @@
     <string name="extensions">扩展</string>
 
     <string name="dyna_state">扩展动态状态</string>
-    <string name="dyna_state_description">控制在扩展动态状态中可使用的函数数量。更高的数值允许启用更多功能，并可能提升性能，但同时也可能导致额外的图形问题。</string>
     <string name="disabled">已禁用</string>
     <string name="vertex_input_dynamic_state">顶点输入动态状态</string>
-    <string name="vertex_input_dynamic_state_description">开启顶点输入动态状态功能来获得更好的质量和性能。</string>
-    <string name="provoking_vertex">引发顶点</string>
-    <string name="provoking_vertex_description">改善某些游戏中的光照和顶点处理。仅支持Vulkan 1.0+ GPU。</string>
-    <string name="descriptor_indexing">描述符索引</string>
-    <string name="descriptor_indexing_description">改进纹理和缓冲区处理以及Maxwell转换层。部分Vulkan 1.1 GPU和所有Vulkan 1.2+ GPU支持。</string>
     <string name="sample_shading_fraction">采样着色</string>
     <string name="sample_shading_fraction_description">允许片段着色器在多采样片段中每个样本执行一次，而不是每个片段执行一次。以提高性能为代价改善图形质量。</string>
 
@@ -987,9 +979,6 @@
     <string name="dma_accuracy_unsafe">不安全</string>
     <string name="dma_accuracy_safe">安全</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">不压缩</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">保守模式</string>
     <string name="vram_usage_aggressive">激进模式</string>
 
@@ -1154,5 +1143,6 @@
     <string name="license_fidelityfx_fsr_description">AMD 的高品质画面增强技术</string>
     <string name="external_content">外部内容</string>
     <string name="add_folders">添加文件夹</string>
+    <string name="percent">%1$d%%</string>
 
 </resources>

@@ -442,8 +442,6 @@
     <string name="fsr_sharpness">Ostrost FSR</string>
     <string name="fsr_sharpness_description">Určuje jak ostře bude obraz vypadat při použití dynamického kontrastu FSR.</string>
     <string name="renderer_anti_aliasing">Metoda anti-aliasingu</string>
-    <string name="renderer_optimize_spirv_output">Optimalizovat výstup SPIRV</string>
-    <string name="renderer_optimize_spirv_output_description">Optimalizuje kompilované shadery pro zlepšení efektivity GPU, ale mohou se objevit delší nahrávací časy a zpomalení v úvodu.</string>
 
 
     <string name="advanced">Pokročilé</string>
@@ -458,8 +456,6 @@
     <string name="vram_usage_mode_description">Určuje, jak moc agresivně emulátor přiděluje a uvolňuje grafickou paměť.</string>
     <string name="accelerate_astc">Metoda dekódování ASTC</string>
     <string name="accelerate_astc_description">Vyberte způsob jak se dekódují ASTC textury: CPU (pomalé, bezpečné), GPU (rychlé, doporučené) nebo CPU Async (asynchronní, žádné zasekávání, ale může způsobit problémy)</string>
-    <string name="astc_recompression">Metoda rekomprese ASTC</string>
-    <string name="astc_recompression_description">Vyberte způsob rekomprese textur ASTC pro zlepšení kompatibility a výkonu. Zapnutí této volby ušetří VRAM, ale může snížit kvalitu textur.</string>
 
     <string name="sync_memory_operations">Synchronizace paměťových operací</string>
     <string name="sync_memory_operations_description">Zajišťuje konzistenci dat mezi výpočetními a paměťovými operacemi. Tato volba by měla opravit problémy v některých hrách, ale může v některých případech snížit výkon. Největší změny se týkají her založených na Unreal Engine 4.</string>
@@ -482,14 +478,8 @@
     <string name="extensions">Rozšíření</string>
 
     <string name="dyna_state">Úroveň EDS</string>
-    <string name="dyna_state_description">Určuje počet funkcí využívaných v rámci rozšířeného dynamického stavu API Vulkan (Extended Dynamic State). Vyšší hodnoty umožňují využít více funkcí a mohou zvýšit výkon, ale u některých ovladačů a výrobců grafických karet mohou způsobovat problémy s kompatibilitou.</string>
     <string name="disabled">Vypnuto</string>
     <string name="vertex_input_dynamic_state">Dynamický stav vstupu vrcholů (Vertex Input)</string>
-    <string name="vertex_input_dynamic_state_description">Aktivuje funkci dynamického stavu vstupu vrcholů (Vertex Input Dynamic State) pro lepší kvalitu a výkon.</string>
-    <string name="provoking_vertex">Určující vrchol</string>
-    <string name="provoking_vertex_description">Zlepšuje osvětlení a zpracování vrcholů v některých hrách. Podporováno pouze na GPU s API Vulkan 1.0+.</string>
-    <string name="descriptor_indexing">Indexování deskriptorů</string>
-    <string name="descriptor_indexing_description">Zlepšuje zpracování textur a bufferů, stejně jako překladovou vrstvu architektury Maxwell. Podporováno některými GPU s API Vulkan 1.1 a všemi GPU s API Vulkan 1.2+.</string>
     <string name="display">Zobrazení</string>
 
     <string name="renderer_screen_layout">Orientace</string>
@@ -727,9 +717,6 @@
     <string name="dma_accuracy_unsafe">Nebezpečné</string>
     <string name="dma_accuracy_safe">Bezpečné</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Nekomprimované</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Konzervativní</string>
     <string name="vram_usage_aggressive">Agresivní</string>
 

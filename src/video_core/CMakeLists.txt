@@ -8,7 +8,7 @@ add_subdirectory(host_shaders)
 add_subdirectory(gpu_logging)
 
 if(LIBVA_FOUND)
-    set_source_files_properties(host1x/ffmpeg/ffmpeg.cpp
+    set_source_files_properties(host1x/ffmpeg.cpp
         PROPERTIES COMPILE_DEFINITIONS LIBVA_FOUND=1)
     list(APPEND FFmpeg_LIBRARIES ${LIBVA_LIBRARIES})
 endif()
@@ -44,7 +44,6 @@ add_library(video_core STATIC
     engines/sw_blitter/converter.h
     engines/const_buffer_info.h
     engines/draw_manager.cpp
-    engines/draw_manager.h
     engines/engine_interface.h
     engines/engine_upload.cpp
     engines/engine_upload.h
@@ -72,9 +71,9 @@ add_library(video_core STATIC
     host1x/codecs/vp8.h
     host1x/codecs/vp9.cpp
     host1x/codecs/vp9.h
-    host1x/codecs/vp9_types.h
-    host1x/ffmpeg/ffmpeg.cpp
-    host1x/ffmpeg/ffmpeg.h
+    host1x/codec_types.h
+    host1x/ffmpeg.cpp
+    host1x/ffmpeg.h
     host1x/control.cpp
     host1x/control.h
     host1x/gpu_device_memory_manager.cpp
@@ -324,7 +323,10 @@ if (ENABLE_OPENGL)
 endif()
 
 target_link_libraries(video_core PUBLIC common core)
-target_link_libraries(video_core PUBLIC glad shader_recompiler stb bc_decoder gpu_logging)
+target_link_libraries(video_core PUBLIC shader_recompiler stb bc_decoder gpu_logging)
+if (ENABLE_OPENGL)
+    target_link_libraries(video_core PUBLIC glad)
+endif()
 
 if (YUZU_USE_EXTERNAL_FFMPEG)
     add_dependencies(video_core ffmpeg-build)

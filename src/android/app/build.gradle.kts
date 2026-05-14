@@ -203,6 +203,12 @@ android {
             resValue("string", "app_name_suffixed", "Eden Trigger Optimized")
             applicationId = "com.miHoYo.Yuanshen"
 
+            externalNativeBuild {
+                cmake {
+                    arguments.add("-DGENSHIN_SPOOF=ON")
+                }
+            }
+
             ndk {
                 abiFilters += listOf("arm64-v8a")
             }

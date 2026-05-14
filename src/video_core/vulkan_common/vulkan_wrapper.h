@@ -218,8 +218,6 @@ struct DeviceDispatch : InstanceDispatch {
     PFN_vkCmdDrawIndirectCount vkCmdDrawIndirectCount{};
     PFN_vkCmdDrawIndexedIndirectCount vkCmdDrawIndexedIndirectCount{};
     PFN_vkCmdDrawIndirectByteCountEXT vkCmdDrawIndirectByteCountEXT{};
-    PFN_vkCmdDrawMultiEXT vkCmdDrawMultiEXT{};
-    PFN_vkCmdDrawMultiIndexedEXT vkCmdDrawMultiIndexedEXT{};
     PFN_vkCmdEndConditionalRenderingEXT vkCmdEndConditionalRenderingEXT{};
     PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT{};
     PFN_vkCmdEndQuery vkCmdEndQuery{};
@@ -227,6 +225,7 @@ struct DeviceDispatch : InstanceDispatch {
     PFN_vkCmdEndTransformFeedbackEXT vkCmdEndTransformFeedbackEXT{};
     PFN_vkCmdFillBuffer vkCmdFillBuffer{};
     PFN_vkCmdPipelineBarrier vkCmdPipelineBarrier{};
+    PFN_vkCmdResetQueryPool vkCmdResetQueryPool{};
     PFN_vkCmdPushConstants vkCmdPushConstants{};
     PFN_vkCmdPushDescriptorSetWithTemplateKHR vkCmdPushDescriptorSetWithTemplateKHR{};
     PFN_vkCmdResolveImage vkCmdResolveImage{};
@@ -1170,6 +1169,10 @@ public:
         dld->vkCmdEndQuery(handle, query_pool, query);
     }
 
+    void ResetQueryPool(VkQueryPool query_pool, u32 first_query, u32 query_count) const noexcept {
+        dld->vkCmdResetQueryPool(handle, query_pool, first_query, query_count);
+    }
+
     void BindDescriptorSets(VkPipelineBindPoint bind_point, VkPipelineLayout layout, u32 first,
                             Span<VkDescriptorSet> sets, Span<u32> dynamic_offsets) const noexcept {
         dld->vkCmdBindDescriptorSets(handle, bind_point, layout, first, sets.size(), sets.data(),
@@ -1239,19 +1242,6 @@ public:
                                   u32 stride) {
         dld->vkCmdDrawIndirectByteCountEXT(handle, instance_count, first_instance, counter_buffer,
                                            counter_buffer_offset, counter_offset, stride);
-    }
-
-    void DrawMultiEXT(u32 draw_count, const VkMultiDrawInfoEXT* vertex_info,
-                      u32 instance_count, u32 first_instance, u32 stride) const noexcept {
-        dld->vkCmdDrawMultiEXT(handle, draw_count, vertex_info, instance_count, first_instance,
-                               stride);
-    }
-
-    void DrawMultiIndexedEXT(u32 draw_count, const VkMultiDrawIndexedInfoEXT* index_info,
-                             u32 instance_count, u32 first_instance, u32 stride,
-                             const int32_t* vertex_offset) const noexcept {
-        dld->vkCmdDrawMultiIndexedEXT(handle, draw_count, index_info, instance_count,
-                                      first_instance, stride, vertex_offset);
     }
 
     void ClearAttachments(Span<VkClearAttachment> attachments,

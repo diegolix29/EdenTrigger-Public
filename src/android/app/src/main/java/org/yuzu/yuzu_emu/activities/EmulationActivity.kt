@@ -15,6 +15,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Rect
 import android.graphics.drawable.Icon
@@ -100,6 +101,7 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
     private var romSwapGeneration = 0
     private var hasEmulationSession = processHasEmulationSession
     private val romSwapStopTimeoutRunnable = Runnable { onRomSwapStopTimeout() }
+    private val pictureInPictureFailureActions: MutableSet<String> = mutableSetOf()
 
     private fun onRomSwapStopTimeout() {
         if (!isWaitingForRomSwapStop) {
@@ -246,6 +248,7 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
         nfcReader.startScanning()
         startMotionSensorListener()
         InputHandler.updateControllerData()
+        notifyPhysicalControllerState()
 
         buildPictureInPictureParams()
     }
@@ -265,12 +268,18 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
     }
 
     override fun onUserLeaveHint() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            if (BooleanSetting.PICTURE_IN_PICTURE.getBoolean() && !isInPictureInPictureMode) {
-                val pictureInPictureParamsBuilder = PictureInPictureParams.Builder()
-                    .getPictureInPictureActionsBuilder().getPictureInPictureAspectBuilder()
-                enterPictureInPictureMode(pictureInPictureParamsBuilder.build())
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ||
+            !isPictureInPictureSupported() ||
+            !BooleanSetting.PICTURE_IN_PICTURE.getBoolean() ||
+            isInPictureInPictureMode
+        ) {
+            return
+        }
+
+        val pictureInPictureParamsBuilder = PictureInPictureParams.Builder()
+            .getPictureInPictureActionsBuilder().getPictureInPictureAspectBuilder()
+        runPictureInPictureAction("enter picture-in-picture mode") {
+            enterPictureInPictureMode(pictureInPictureParamsBuilder.build())
         }
     }
 
@@ -403,8 +412,7 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
         val isPhysicalKeyboard = event.source and InputDevice.SOURCE_KEYBOARD == InputDevice.SOURCE_KEYBOARD &&
                                 event.device?.isVirtual == false
 
-        val isControllerInput = event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK ||
-            event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD
+        val isControllerInput = InputHandler.isPhysicalGameController(event.device)
 
         if (!isControllerInput &&
             event.source and InputDevice.SOURCE_MOUSE != InputDevice.SOURCE_MOUSE &&
@@ -425,8 +433,7 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        val isControllerInput = event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK ||
-            event.source and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD
+        val isControllerInput = InputHandler.isPhysicalGameController(event.device)
 
         if (!isControllerInput &&
             event.source and InputDevice.SOURCE_KEYBOARD != InputDevice.SOURCE_KEYBOARD &&
@@ -460,36 +467,34 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
     }
 
     private fun isGameController(deviceId: Int): Boolean {
-        val device = InputDevice.getDevice(deviceId) ?: return false
-        val sources = device.sources
-        return sources and InputDevice.SOURCE_GAMEPAD == InputDevice.SOURCE_GAMEPAD ||
-            sources and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+        return InputHandler.isPhysicalGameController(InputDevice.getDevice(deviceId))
     }
 
     override fun onInputDeviceAdded(deviceId: Int) {
         if (isGameController(deviceId)) {
             InputHandler.updateControllerData()
-            val navHostFragment =
-                supportFragmentManager.findFragmentById(R.id.fragment_container) as? NavHostFragment
-            val emulationFragment =
-                navHostFragment?.childFragmentManager?.fragments?.firstOrNull() as? org.yuzu.yuzu_emu.fragments.EmulationFragment
-            emulationFragment?.onControllerConnected()
+            notifyPhysicalControllerState()
         }
     }
 
     override fun onInputDeviceRemoved(deviceId: Int) {
         InputHandler.updateControllerData()
-        val navHostFragment =
-            supportFragmentManager.findFragmentById(R.id.fragment_container) as? NavHostFragment
-        val emulationFragment =
-            navHostFragment?.childFragmentManager?.fragments?.firstOrNull() as? org.yuzu.yuzu_emu.fragments.EmulationFragment
-        emulationFragment?.onControllerDisconnected()
+        notifyPhysicalControllerState()
     }
 
     override fun onInputDeviceChanged(deviceId: Int) {
         if (isGameController(deviceId)) {
             InputHandler.updateControllerData()
+            notifyPhysicalControllerState()
         }
+    }
+
+    private fun notifyPhysicalControllerState() {
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.fragment_container) as? NavHostFragment
+        val emulationFragment =
+            navHostFragment?.childFragmentManager?.fragments?.firstOrNull() as? org.yuzu.yuzu_emu.fragments.EmulationFragment
+        emulationFragment?.onPhysicalControllerStateChanged(InputHandler.androidControllers.isNotEmpty())
     }
 
     override fun onSensorChanged(event: SensorEvent) {
@@ -654,7 +659,29 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
         return this.apply { setActions(pictureInPictureActions) }
     }
 
+    private fun isPictureInPictureSupported() =
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    private fun runPictureInPictureAction(actionName: String, action: () -> Unit) {
+        try {
+            action()
+        } catch (e: IllegalStateException) {
+            if (pictureInPictureFailureActions.add(actionName)) {
+                Log.warning("[PiP] Failed to $actionName: ${e.message}")
+            }
+        } catch (e: UnsupportedOperationException) {
+            if (pictureInPictureFailureActions.add(actionName)) {
+                Log.warning("[PiP] Failed to $actionName: ${e.message}")
+            }
+        }
+    }
+
     fun buildPictureInPictureParams() {
+        if (!isPictureInPictureSupported()) {
+            return
+        }
+
         val pictureInPictureParamsBuilder = PictureInPictureParams.Builder()
             .getPictureInPictureActionsBuilder().getPictureInPictureAspectBuilder()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -664,7 +691,9 @@ class EmulationActivity : AppCompatActivity(), SensorEventListener, InputManager
                 BooleanSetting.PICTURE_IN_PICTURE.getBoolean() && isEmulationActive
             )
         }
-        setPictureInPictureParams(pictureInPictureParamsBuilder.build())
+        runPictureInPictureAction("set picture-in-picture params") {
+            setPictureInPictureParams(pictureInPictureParamsBuilder.build())
+        }
     }
 
     fun displayMultiplayerDialog() {

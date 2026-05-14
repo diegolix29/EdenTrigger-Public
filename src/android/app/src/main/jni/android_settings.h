@@ -95,7 +95,7 @@ namespace AndroidSettings {
         Settings::Setting<u32> input_overlay_auto_hide{linkage, 5, "input_overlay_auto_hide",
                                                     Settings::Category::Overlay,
                                                     Settings::Specialization::Default, true, true, &enable_input_overlay_auto_hide};
-        Settings::Setting<bool> hide_overlay_on_controller_input{linkage, false,
+        Settings::Setting<bool> hide_overlay_on_controller_input{linkage, true,
                                                               "hide_overlay_on_controller_input",
                                                               Settings::Category::Overlay,
                                                               Settings::Specialization::Default, true,
@@ -149,6 +149,13 @@ namespace AndroidSettings {
                                                       Settings::Category::Overlay,
                                                       Settings::Specialization::Default, true, true,
                                                       &show_performance_overlay};
+
+
+        Settings::Setting<s32> pipeline_worker_count{linkage, 4, "pipeline_worker_count",
+                                 Settings::Category::Android,
+                                 Settings::Specialization::Default,
+                                 true,
+                                 true};
 
 
         Settings::Setting<bool> show_input_overlay{linkage, true, "show_input_overlay",

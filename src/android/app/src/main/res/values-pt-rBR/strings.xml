@@ -433,7 +433,6 @@
     <string name="fsr_sharpness">Nitidez do FSR</string>
     <string name="fsr_sharpness_description">Determina a nitidez da imagem ao utilizar o contraste dinâmico do FSR</string>
     <string name="renderer_anti_aliasing">Método de Anti-aliasing</string>
-    <string name="renderer_optimize_spirv_output_description">Otimiza o shader compilado para melhorar a eficiência da GPU.</string>
 
 
     <string name="advanced">Avançado</string>
@@ -446,8 +445,6 @@
     <string name="vram_usage_mode_description">Controla a alocação de memória GPU</string>
     <string name="accelerate_astc">Método de decodificação ASTC</string>
     <string name="accelerate_astc_description">Escolha como as texturas comprimidas em ASTC são decodificadas para renderização: CPU (lenta, segura), GPU (rápida, recomendada) ou CPU Assíncrona (sem travamentos, mas pode causar problemas).</string>
-    <string name="astc_recompression">Método de recompressão ASTC</string>
-    <string name="astc_recompression_description">Escolha como as texturas ASTC são recompactadas para melhorar a compatibilidade e o desempenho. Ativar esta opção economiza VRAM, mas pode reduzir a qualidade da textura.</string>
 
     <string name="sync_memory_operations">Sincronizar Operações de Memória</string>
     <string name="sync_memory_operations_description">Garante a consistência de dados entre operações de computação e memória. Esta opção pode corrigir problemas em alguns jogos, mas também pode reduzir o desempenho, sendo os jogos da Unreal Engine 4 os mais afetados.</string>
@@ -466,11 +463,6 @@
     <string name="dyna_state">Extended Dynamic State</string>
     <string name="disabled">Desativado</string>
     <string name="vertex_input_dynamic_state">Vertex Input Dynamic State</string>
-    <string name="vertex_input_dynamic_state_description">Ativa o recurso de vertex input dynamic state para melhor qualidade e desempenho.</string>
-    <string name="provoking_vertex">Provoking Vertex</string>
-    <string name="provoking_vertex_description">Vértice Provocante: Melhora a iluminação e o processamento de vértices em certos jogos. Suportado apenas em GPUs com Vulkan 1.0 ou superior.</string>
-    <string name="descriptor_indexing">Descriptor Indexing</string>
-    <string name="descriptor_indexing_description">Indexação de Descritores: Melhora o processamento de texturas e buffers, assim como a camada de tradução Maxwell. Suportado por algumas GPUs Vulkan 1.1 e todas as GPUs Vulkan 1.2 ou superiores.</string>
     <string name="display">Tela</string>
 
     <string name="renderer_screen_layout">Orientação</string>
@@ -858,9 +850,6 @@
     <string name="dma_accuracy_unsafe">Insegura</string>
     <string name="dma_accuracy_safe">Segura</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Não comprimido</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Conservador</string>
     <string name="vram_usage_aggressive">Agressivo</string>
 

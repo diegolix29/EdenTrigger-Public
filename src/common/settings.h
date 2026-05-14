@@ -364,7 +364,11 @@ struct Values {
                                                     true,
                                                     true};
     SwitchableSetting<int, true> fsr_sharpening_slider{linkage,
+#ifdef ANDROID
+                                                       0,
+#else
                                                        25,
+#endif
                                                        0,
                                                        200,
                                                        "fsr_sharpening_slider",
@@ -389,12 +393,13 @@ struct Values {
                                                   true,
                                                   true};
 
-    SwitchableSetting<SpirvOptimizeMode, true> optimize_spirv_output{linkage,
-                                                                     SpirvOptimizeMode::Never,
-                                                                     "optimize_spirv_output",
-                                                                     Category::Renderer};
-    SwitchableSetting<bool> use_asynchronous_gpu_emulation{
-                                                           linkage, true, "use_asynchronous_gpu_emulation", Category::Renderer};
+    SwitchableSetting<bool> use_asynchronous_gpu_emulation{linkage,
+#ifdef __ANDROID__
+        false,
+#else
+        true,
+#endif
+        "use_asynchronous_gpu_emulation", Category::Renderer};
     // *nix platforms may have issues with the borderless windowed fullscreen mode.
     // Default to exclusive fullscreen on these platforms for now.
     SwitchableSetting<FullscreenMode, true> fullscreen_mode{linkage,
@@ -455,11 +460,7 @@ struct Values {
                                                            "max_anisotropy",
                                                            Category::RendererAdvanced};
     SwitchableSetting<AstcDecodeMode, true> accelerate_astc{linkage,
-#ifdef ANDROID
-                                                            AstcDecodeMode::Cpu,
-#else
                                                             AstcDecodeMode::Gpu,
-#endif
                                                             "accelerate_astc",
                                                             Category::RendererAdvanced};
 
@@ -551,7 +552,7 @@ struct Values {
                                                         true};
     SwitchableSetting<bool> async_presentation{linkage,
 #ifdef ANDROID
-                                               true,
+                                               false,
 #else
                                                false,
 #endif
@@ -560,8 +561,16 @@ struct Values {
     SwitchableSetting<bool> fix_bloom_effects{linkage, false, "fix_bloom_effects",
                                                      Category::RendererHacks};
 
-    SwitchableSetting<bool> rescale_hack{linkage, false, "rescale_hack",
-                                                     Category::RendererHacks};
+    SwitchableSetting<bool> emulate_bgr565{linkage, false, "emulate_bgr565",
+                                            Category::RendererHacks};
+
+    SwitchableSetting<bool> rescale_hack{linkage,
+#ifdef __ANDROID__
+        true,
+#else
+        false,
+#endif
+        "rescale_hack", Category::RendererHacks};
 
     SwitchableSetting<bool> use_asynchronous_shaders{linkage, false, "use_asynchronous_shaders",
                                                      Category::RendererHacks};
@@ -588,7 +597,9 @@ struct Values {
                                                   Category::RendererHacks};
 
     SwitchableSetting<ExtendedDynamicState> dyna_state{linkage,
-#if defined (ANDROID) || defined (__APPLE__)
+#if defined(ANDROID)
+                                           ExtendedDynamicState::Disabled,
+#elif defined(__APPLE__)
                                            ExtendedDynamicState::Disabled,
 #else
                                            ExtendedDynamicState::EDS2,
@@ -611,8 +622,6 @@ struct Values {
                                                        true,
 #endif
                                                        "vertex_input_dynamic_state", Category::RendererExtensions};
-    SwitchableSetting<bool> provoking_vertex{linkage, false, "provoking_vertex", Category::RendererExtensions};
-    SwitchableSetting<bool> descriptor_indexing{linkage, false, "descriptor_indexing", Category::RendererExtensions};
 
     Setting<bool> renderer_debug{linkage, false, "debug", Category::RendererDebug};
     Setting<bool> renderer_shader_feedback{linkage, false, "shader_feedback",
@@ -641,8 +650,8 @@ struct Values {
                                                      Category::System};
     SwitchableSetting<Region, true> region_index{linkage, Region::Usa, "region_index", Category::System};
     SwitchableSetting<TimeZone, true> time_zone_index{linkage, TimeZone::Auto, "time_zone_index", Category::System};
-    Setting<u32> serial_battery{linkage, 0, "serial_battery", Category::System};
-    Setting<u32> serial_unit{linkage, 0, "serial_unit", Category::System};
+    Setting<u32> serial_battery{linkage, 0, "serial_battery", Category::Debugging};
+    Setting<u32> serial_unit{linkage, 0, "serial_unit", Category::Debugging};
     // Measured in seconds since epoch
     SwitchableSetting<bool> custom_rtc_enabled{linkage, false, "custom_rtc_enabled", Category::System, Specialization::Paired, true, true};
     SwitchableSetting<s64> custom_rtc{
@@ -812,7 +821,7 @@ struct Values {
                                            0,
                                            65535,
                                            "debug_knobs",
-                                           Category::Core,
+                                           Category::Debugging,
                                            Specialization::Countable,
                                            true,
                                            true};

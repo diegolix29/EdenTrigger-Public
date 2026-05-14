@@ -413,7 +413,9 @@
     <string name="frame_limit_slider">Limiter le pourcentage de vitesse</string>
     <string name="frame_limit_slider_description">Spécifier le pourcentage pour limiter la vitesse d\'émulation. 100% correspond à la vitesse normale. Des valeurs plus élevées ou plus basses augmenteront ou diminueront la limite de vitesse.</string>
     <string name="turbo_speed_limit">Vitesse turbo</string>
+    <string name="turbo_speed_limit_description">Lorsque le mode Turbo est activé, l\'émulation s\'exécute à cette vitesse.</string>
     <string name="slow_speed_limit">Vitesse lente</string>
+    <string name="slow_speed_limit_description">Lorsque le mode Lent est activé, l\'émulation s\'exécute à cette vitesse.</string>
     <string name="cpu_backend">Backend du CPU</string>
     <string name="cpu_accuracy">Précision du CPU</string>
     <string name="value_with_units">%1$s%2$s</string>
@@ -455,7 +457,6 @@
     <string name="fsr_sharpness">Netteté FSR</string>
     <string name="fsr_sharpness_description">Détermine à quel point l\'image sera affinée lors de l\'utilisation du contraste dynamique FSR.</string>
     <string name="renderer_anti_aliasing">Méthode d\'anticrénelage</string>
-    <string name="renderer_optimize_spirv_output_description">Optimise le shader compilé pour améliorer l\'efficacité du GPU.</string>
 
 
     <string name="dma_accuracy">Précision DMA</string>
@@ -466,8 +467,6 @@
     <string name="vram_usage_mode_description">Gestion de la mémoire GPU</string>
     <string name="accelerate_astc">Méthode ASTC</string>
     <string name="accelerate_astc_description">Choisissez comment les textures compressées ASTC sont décodées pour le rendu : CPU (lent, sûr), GPU (rapide, recommandé) ou CPU Async (pas de saccades, peut causer des problèmes)</string>
-    <string name="astc_recompression">Recompression ASTC</string>
-    <string name="astc_recompression_description">Choisissez comment les textures ASTC sont recompressées pour améliorer la compatibilité et les performances. Activer cette option économise la VRAM mais peut réduire la qualité des textures.</string>
 
     <string name="sync_memory_operations">Synchroniser les opérations mémoire</string>
     <string name="sync_memory_operations_description">Garantit la cohérence des données entre les opérations de calcul et de mémoire. Cette option devrait résoudre les problèmes dans certains jeux, mais peut réduire les performances dans certains cas. Les jeux utilisant Unreal Engine 4 semblent être les plus affectés.</string>
@@ -484,11 +483,6 @@
     <string name="dyna_state">État dynamique étendu</string>
     <string name="disabled">Désactivé</string>
     <string name="vertex_input_dynamic_state">État dynamique d\'entrée de sommet</string>
-    <string name="vertex_input_dynamic_state_description">Active la fonctionnalité d\'état dynamique des entrées de sommets pour une meilleure qualité et de meilleures performances.</string>
-    <string name="provoking_vertex">Provoque des Vertex</string>
-    <string name="provoking_vertex_description">Améliore l`éclairage et la gestion des vertex dans certains jeux. Pris en charge uniquement par les GPU Vulkan 1.0+.</string>
-    <string name="descriptor_indexing">Indexation des descripteurs</string>
-    <string name="descriptor_indexing_description">Améliore la gestion des textures et des tampons, ainsi que la couche de traduction Maxwell. Pris en charge par certains GPU Vulkan 1.1 et tous les GPU Vulkan 1.2+.</string>
     <string name="display">Affichage</string>
 
     <string name="renderer_screen_layout">Orientation</string>
@@ -864,9 +858,6 @@
     <string name="dma_accuracy_unsafe">Dangereux</string>
     <string name="dma_accuracy_safe">Sûr</string>
 
-    <!-- ASTC Recompression Method Choices -->
-    <string name="astc_recompression_uncompressed">Non compressé</string>
-    <!-- ASTC Recompression Method Choices -->
     <string name="vram_usage_conservative">Conservateur</string>
     <string name="vram_usage_aggressive">Agressif</string>
 

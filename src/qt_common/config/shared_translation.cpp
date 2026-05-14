@@ -164,10 +164,8 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, use_disk_shader_cache, tr("Use persistent pipeline cache"),
            tr("Allows saving shaders to storage for faster loading on following game "
               "boots.\nDisabling it is only intended for debugging."));
-    INSERT(Settings, optimize_spirv_output, tr("Optimize SPIRV output"),
-           tr("Runs an additional optimization pass over generated SPIRV shaders.\n"
-              "Will increase time required for shader compilation.\nMay slightly improve "
-              "performance.\nThis feature is experimental."));
+    INSERT(Settings, use_asynchronous_gpu_emulation, tr("Use asynchronous GPU emulation"),
+           tr("Uses an extra CPU thread for rendering.\nThis option should always remain enabled."));
     INSERT(Settings, nvdec_emulation, tr("NVDEC emulation:"),
            tr("Specifies how videos should be decoded.\nIt can either use the CPU or the GPU for "
               "decoding, or perform no decoding at all (black screen on videos).\n"
@@ -285,14 +283,6 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, vertex_input_dynamic_state, tr("Vertex Input Dynamic State"),
            tr("Enables vertex input dynamic state feature for better quality and performance."));
 
-    INSERT(Settings, provoking_vertex, tr("Provoking Vertex"),
-           tr("Improves lighting and vertex handling in some games.\n"
-              "Only Vulkan 1.0+ devices support this extension."));
-
-    INSERT(Settings, descriptor_indexing, tr("Descriptor Indexing"),
-           tr("Improves texture & buffer handling and the Maxwell translation layer.\n"
-              "Some Vulkan 1.1+ and all 1.2+ devices support this extension."));
-
     INSERT(
         Settings, sample_shading, tr("Sample Shading"),
         tr("Allows the fragment shader to execute per sample in a multi-sampled fragment "
@@ -322,9 +312,6 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
               "their resolution, details and supported controllers and depending on this setting.\n"
               "Setting to Handheld can help improve performance for low end systems."));
     INSERT(Settings, current_user, QString(), QString());
-    INSERT(Settings, serial_unit, tr("Unit Serial"), QString());
-    INSERT(Settings, serial_battery, tr("Battery Serial"), QString());
-    INSERT(Settings, debug_knobs, tr("Debug knobs"), QString());
 
     // Controls
 

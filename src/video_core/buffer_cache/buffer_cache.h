@@ -356,7 +356,7 @@ void BufferCache<P>::BindHostGeometryBuffers(bool is_indexed) {
     if (is_indexed) {
         BindHostIndexBuffer();
     } else if constexpr (!HAS_FULL_INDEX_AND_PRIMITIVE_SUPPORT) {
-        const auto& draw_state = maxwell3d->draw_manager->GetDrawState();
+        const auto& draw_state = maxwell3d->draw_manager.draw_state;
         if (draw_state.topology == Maxwell::PrimitiveTopology::Quads ||
             draw_state.topology == Maxwell::PrimitiveTopology::QuadStrip) {
             runtime.BindQuadIndexBuffer(draw_state.topology, draw_state.vertex_buffer.first,
@@ -740,30 +740,25 @@ void BufferCache<P>::BindHostIndexBuffer() {
     TouchBuffer(buffer, channel_state->index_buffer.buffer_id);
     const u32 offset = buffer.Offset(channel_state->index_buffer.device_addr);
     const u32 size = channel_state->index_buffer.size;
-    const auto& draw_state = maxwell3d->draw_manager->GetDrawState();
-    if (!draw_state.inline_index_draw_indexes.empty()) [[unlikely]] {
+    const auto& draw_state = maxwell3d->draw_manager.draw_state;
+    if (draw_state.inline_index_draw_indexes.empty()) {
+        SynchronizeBuffer(buffer, channel_state->index_buffer.device_addr, size);
+    } else {
         if constexpr (USE_MEMORY_MAPS_FOR_UPLOADS) {
             auto upload_staging = runtime.UploadStagingBuffer(size);
-            std::array<BufferCopy, 1> copies{
-                {BufferCopy{.src_offset = upload_staging.offset, .dst_offset = 0, .size = size}}};
-            std::memcpy(upload_staging.mapped_span.data(),
-                        draw_state.inline_index_draw_indexes.data(), size);
+            std::array<BufferCopy, 1> copies{{BufferCopy{.src_offset = upload_staging.offset, .dst_offset = 0, .size = size}}};
+            std::memcpy(upload_staging.mapped_span.data(), draw_state.inline_index_draw_indexes.data(), size);
             runtime.CopyBuffer(buffer, upload_staging.buffer, copies, true);
         } else {
             buffer.ImmediateUpload(0, draw_state.inline_index_draw_indexes);
         }
-    } else {
-        SynchronizeBuffer(buffer, channel_state->index_buffer.device_addr, size);
     }
     if constexpr (HAS_FULL_INDEX_AND_PRIMITIVE_SUPPORT) {
-        const u32 new_offset =
-            offset + draw_state.index_buffer.first * draw_state.index_buffer.FormatSizeInBytes();
+        const u32 new_offset = offset + draw_state.index_buffer.first * draw_state.index_buffer.FormatSizeInBytes();
         runtime.BindIndexBuffer(buffer, new_offset, size);
     } else {
         buffer.MarkUsage(offset, size);
-        runtime.BindIndexBuffer(draw_state.topology, draw_state.index_buffer.format,
-                                draw_state.index_buffer.first, draw_state.index_buffer.count,
-                                buffer, offset, size);
+        runtime.BindIndexBuffer(draw_state.topology, draw_state.index_buffer.format, draw_state.index_buffer.first, draw_state.index_buffer.count, buffer, offset, size);
     }
 }
 
@@ -816,7 +811,7 @@ void BufferCache<P>::BindHostVertexBuffers() {
         auto& flags = maxwell3d->dirty.flags;
         u32 enabled_mask = enabled_vertex_buffers_mask;
         HostBindings<Buffer> bindings{};
-        u32 last_index = std::numeric_limits<u32>::max();
+        u32 last_index = (std::numeric_limits<u32>::max)();
         const auto flush_bindings = [&]() {
             if (bindings.buffers.empty()) {
                 return;
@@ -824,7 +819,7 @@ void BufferCache<P>::BindHostVertexBuffers() {
             bindings.max_index = bindings.min_index + static_cast<u32>(bindings.buffers.size());
             runtime.BindVertexBuffers(bindings);
             bindings = HostBindings<Buffer>{};
-            last_index = std::numeric_limits<u32>::max();
+            last_index = (std::numeric_limits<u32>::max)();
         };
         while (enabled_mask != 0) {
             const u32 index = std::countr_zero(enabled_mask);
@@ -945,10 +940,9 @@ void BufferCache<P>::BindHostGraphicsUniformBuffer(size_t stage, u32 index, u32 
             return alignment > 1 && (offset % alignment) != 0;
         }
     }();
-    const bool use_fast_buffer = needs_alignment_stream ||
-                                 (has_host_buffer &&
-                                  size <= channel_state->uniform_buffer_skip_cache_size &&
-                                  !memory_tracker.IsRegionGpuModified(device_addr, size));
+    const bool use_fast_buffer = needs_alignment_stream
+        || (has_host_buffer && size <= channel_state->uniform_buffer_skip_cache_size
+            && !memory_tracker.IsRegionGpuModified(device_addr, size));
     if (use_fast_buffer) {
         if constexpr (IS_OPENGL) {
             if (runtime.HasFastBufferSubData()) {
@@ -1067,26 +1061,29 @@ void BufferCache<P>::BindHostTransformFeedbackBuffers() {
     HostBindings<typename P::Buffer> host_bindings;
     for (u32 index = 0; index < NUM_TRANSFORM_FEEDBACK_BUFFERS; ++index) {
         const Binding& binding = channel_state->transform_feedback_buffers[index];
-        if (maxwell3d->regs.transform_feedback.controls[index].varying_count == 0 &&
-            maxwell3d->regs.transform_feedback.controls[index].stride == 0) {
-            break;
+        const auto& control = maxwell3d->regs.transform_feedback.controls[index];
+        const bool has_layout = control.varying_count != 0 || control.stride != 0;
+
+        Buffer* host_buffer = &slot_buffers[NULL_BUFFER_ID];
+        u32 offset = 0;
+        u32 size = 0;
+
+        if (has_layout && binding.buffer_id != NULL_BUFFER_ID && binding.size != 0) {
+            Buffer& buffer = slot_buffers[binding.buffer_id];
+            TouchBuffer(buffer, binding.buffer_id);
+            size = binding.size;
+            SynchronizeBuffer(buffer, binding.device_addr, size);
+            MarkWrittenBuffer(binding.buffer_id, binding.device_addr, size);
+            offset = buffer.Offset(binding.device_addr);
+            buffer.MarkUsage(offset, size);
+            host_buffer = &buffer;
         }
-        Buffer& buffer = slot_buffers[binding.buffer_id];
-        TouchBuffer(buffer, binding.buffer_id);
-        const u32 size = binding.size;
-        SynchronizeBuffer(buffer, binding.device_addr, size);
 
-        MarkWrittenBuffer(binding.buffer_id, binding.device_addr, size);
-
-        const u32 offset = buffer.Offset(binding.device_addr);
-        buffer.MarkUsage(offset, size);
-        host_bindings.buffers.push_back(&buffer);
+        host_bindings.buffers.push_back(host_buffer);
         host_bindings.offsets.push_back(offset);
         host_bindings.sizes.push_back(size);
     }
-    if (host_bindings.buffers.size() > 0) {
-        runtime.BindTransformFeedbackBuffers(host_bindings);
-    }
+    runtime.BindTransformFeedbackBuffers(host_bindings);
 }
 
 template <class P>
@@ -1226,7 +1223,7 @@ template <class P>
 void BufferCache<P>::UpdateIndexBuffer() {
     // We have to check for the dirty flags and index count
     // The index count is currently changed without updating the dirty flags
-    const auto& draw_state = maxwell3d->draw_manager->GetDrawState();
+    const auto& draw_state = maxwell3d->draw_manager.draw_state;
     const auto& index_buffer_ref = draw_state.index_buffer;
     auto& flags = maxwell3d->dirty.flags;
     if (!flags[Dirty::IndexBuffer]) {

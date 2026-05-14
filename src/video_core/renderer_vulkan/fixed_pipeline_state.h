@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2019 yuzu Emulator Project
@@ -27,7 +27,14 @@ struct DynamicFeatures {
     bool has_extended_dynamic_state_2_patch_control_points;
     bool has_extended_dynamic_state_3_blend;
     bool has_extended_dynamic_state_3_enables;
+    bool has_dynamic_state3_depth_clamp_enable;
+    bool has_dynamic_state3_logic_op_enable;
+    bool has_dynamic_state3_line_stipple_enable;
     bool has_dynamic_vertex_input;
+    bool has_provoking_vertex;
+    bool has_provoking_vertex_first_mode;
+    bool has_provoking_vertex_last_mode;
+    bool has_provoking_vertex_tf_preserve;
 };
 
 struct FixedPipelineState {
@@ -171,7 +178,7 @@ struct FixedPipelineState {
         void Refresh(const Maxwell& regs);
         void Refresh2(const Maxwell& regs, Maxwell::PrimitiveTopology topology,
                       bool base_features_supported);
-        void Refresh3(const Maxwell& regs);
+        void Refresh3(const Maxwell& regs, const DynamicFeatures& features);
 
         Maxwell::ComparisonOp DepthTestFunc() const noexcept {
             return UnpackComparisonOp(depth_test_func);
@@ -261,8 +268,7 @@ struct FixedPipelineState {
             return sizeof(*this);
         }
         if (dynamic_vertex_input && extended_dynamic_state_3_blend) {
-            // Exclude dynamic state and attributes
-            return offsetof(FixedPipelineState, dynamic_state);
+            return offsetof(FixedPipelineState, attachments);
         }
         if (dynamic_vertex_input) {
             // Exclude dynamic state
