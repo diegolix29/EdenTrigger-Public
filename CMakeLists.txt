@@ -119,13 +119,13 @@ if (YUZU_STATIC_BUILD)
         set(QuaZip-Qt6_FORCE_BUNDLED ON)
 
         set(YUZU_USE_BUNDLED_FFMPEG ON)
-        set(YUZU_USE_BUNDLED_SDL2 ON)
+        set(YUZU_USE_BUNDLED_SDL3 ON)
         set(YUZU_USE_BUNDLED_OPENSSL ON)
 
         set(HTTPLIB_USE_BROTLI_IF_AVAILABLE OFF)
     elseif(APPLE)
         set(YUZU_USE_BUNDLED_FFMPEG ON)
-        set(YUZU_USE_BUNDLED_SDL2 ON)
+        set(YUZU_USE_BUNDLED_SDL3 ON)
         set(YUZU_USE_BUNDLED_OPENSSL ON)
 
         # these libs do not properly provide static libs/let you do it with cmake
@@ -190,13 +190,11 @@ if(MSVC)
         $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:Debug>:/${libflag}d>>
         $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:Release>:/${libflag}>>
         $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:RelWithDebInfo>:/${libflag}>>
-        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:MinSizeRel>:/${libflag}>>
-    )
+        $<$<COMPILE_LANGUAGE:C,CXX>:$<$<CONFIG:MinSizeRel>:/${libflag}>>)
 endif()
 
 # TODO(crueter): Cleanup, each dep that has a bundled option should allow to choose between bundled, external, system
-cmake_dependent_option(YUZU_USE_EXTERNAL_SDL2 "Build SDL2 from external source" OFF "NOT MSVC;NOT ANDROID" OFF)
-cmake_dependent_option(YUZU_USE_BUNDLED_SDL2 "Download bundled SDL2 build" "${MSVC}" "NOT ANDROID" OFF)
+cmake_dependent_option(YUZU_USE_BUNDLED_SDL3 "Download bundled SDL3 build" "${MSVC}" "NOT ANDROID" OFF)
 
 option(ENABLE_CUBEB "Enables the cubeb audio backend" ON)
 
@@ -229,6 +227,10 @@ option(ENABLE_WIFI_SCAN "Enable WiFi scanning" OFF)
 cmake_dependent_option(USE_DISCORD_PRESENCE "Enables Discord Rich Presence" OFF "ENABLE_QT" OFF)
 
 option(YUZU_TESTS "Compile tests" "${BUILD_TESTING}")
+
+# Install udev rules on Linux (mainly for gyros)
+# Only acts on joysticks and nothing else.
+cmake_dependent_option(YUZU_INSTALL_UDEV_RULES "Install udev rules for gyro access" OFF "PLATFORM_LINUX" OFF)
 
 option(YUZU_DOWNLOAD_ANDROID_VVL "Download validation layer binary for android" ON)
 
@@ -357,10 +359,6 @@ if (CXX_GCC OR CXX_CLANG)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${march} -mtune=${mtune}")
     endif()
 endif()
-
-# Other presets, e.g. steamdeck
-# TODO(crueter): Just have every Linux/Windows use old sdl2
-set(YUZU_SYSTEM_PROFILE "generic" CACHE STRING "CMake and Externals profile to use. One of: generic, steamdeck")
 
 # Configure C++ standard
 # ===========================
@@ -559,7 +557,7 @@ if (NOT YUZU_STATIC_ROOM)
     endif()
 
     if (NOT ANDROID)
-        find_package(SDL2)
+        find_package(SDL3)
     endif()
 
     if (USE_DISCORD_PRESENCE)
@@ -730,6 +728,8 @@ endif()
 # https://specifications.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html
 # https://specifications.freedesktop.org/shared-mime-info-spec/shared-mime-info-spec-latest.html
 # https://www.freedesktop.org/software/appstream/docs/
+
+# TODO: Icon/install handling n such should be put into dist/CMakeLists.txt
 if(ENABLE_QT AND UNIX AND NOT APPLE)
     install(FILES "dist/dev.eden_emu.eden.desktop"
         DESTINATION "share/applications")
@@ -741,4 +741,11 @@ if(ENABLE_QT AND UNIX AND NOT APPLE)
         DESTINATION "share/mime/packages")
     install(FILES "dist/dev.eden_emu.eden.metainfo.xml"
         DESTINATION "share/metainfo")
+endif()
+
+if (YUZU_INSTALL_UDEV_RULES)
+    include(GNUInstallDirs)
+
+    install(FILES "dist/72-eden-input.rules"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/udev/rules.d")
 endif()
