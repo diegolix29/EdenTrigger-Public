@@ -55,11 +55,43 @@ enum class NetDbError : s32 {
 
 static const constexpr std::array blockedDomains = {
     "srv.nintendo.net", //obvious
+    "nintendo.es",
+    "nintendowifi.net",
+    "nintendo-europe.com",
+    "nintendo.com.hk",
+    "nintendo.com.au",
+    "nintendo.co.kr",
+    "nintendo.co.uk",
+    "nintendo.co.jp",
+    "nintendo.co.nz",
+    "nintendo.co.za",
+    "nintendo.com",
+    "nintendo.jp",
+    "nintendo.tw",
+    "nintendo.at",
+    "nintendo.be",
+    "nintendo.dk",
+    "nintendo.de",
+    "nintendo.fi",
+    "nintendo.fr",
+    "nintendo.gr",
+    "nintendo.hu",
+    "nintendo.it",
+    "nintendo.nl",
+    "nintendo.no",
+    "nintendo.pt",
+    "nintendo.ru",
+    "nintendo.ch",
+    "nintendo.se",
+    "nintendoswitch.com.cn",
+    "nintendoswitch.com",
+    "sun.hac.lp1.d4c.nintendo.net",
     "phoenix-api.wbagora.com", //hogwarts legacy
     "battle.net",
     "microsoft.com", //minecraft dungeons + other games
     "mojang.com",
     "xboxlive.com",
+    "api.epicgames.dev", // marvel cosmic invasion +?
     "minecraftservices.com"
 };
 
@@ -238,7 +270,7 @@ static std::vector<u8> SerializeAddrInfo(const std::vector<Network::AddrInfo>& v
         Append<u32_be>(data, static_cast<u32>(Translate(addrinfo.family)));      // ai_family
         Append<u32_be>(data, static_cast<u32>(Translate(addrinfo.socket_type))); // ai_socktype
         Append<u32_be>(data, static_cast<u32>(Translate(addrinfo.protocol)));    // ai_protocol
-        Append<u32_be>(data, sizeof(SockAddrIn));                                // ai_addrlen
+        Append<u32_be>(data, 16); // ai_addrlen
         // ^ *not* sizeof(SerializedSockAddrIn), not that it matters since they're the same size
 
         // ai_addr:

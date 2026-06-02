@@ -75,6 +75,8 @@ cmake_dependent_option(YUZU_USE_QT_WEB_ENGINE "Use QtWebEngine for web applet im
 set(YUZU_QT_MIRROR "" CACHE STRING "What mirror to use for downloading the bundled Qt libraries")
 cmake_dependent_option(YUZU_USE_BUNDLED_QT "Download bundled Qt binaries" "${MSVC}" "ENABLE_QT" OFF)
 
+option(ENABLE_DEBUG_TOOLS "Enable debugging tools (maxwell disassembler, SPIRV translator, etc)" OFF)
+
 # non-linux bundled qt are static
 if (YUZU_USE_BUNDLED_QT AND (APPLE OR NOT UNIX))
     set(YUZU_STATIC_BUILD ON)
@@ -582,8 +584,6 @@ if (ENABLE_QT)
         else()
             AddQt(6.9.3)
         endif()
-
-        set(YUZU_STATIC_BUILD ON)
     else()
         message(STATUS "Using system Qt")
         if (NOT Qt6_DIR)
@@ -631,21 +631,27 @@ find_package(Qt6 CONFIG REQUIRED COMPONENTS Widgets Concurrent)
     ## Components ##
 
     # Best practice is to ask for all components at once, so they are from the same version
-set(YUZU_QT_COMPONENTS Core Widgets Concurrent)
-    if (PLATFORM_LINUX)
+    set(YUZU_QT_COMPONENTS Core Widgets Charts Concurrent Gui)
+    if (PLATFORM_LINUX OR PLATFORM_FREEBSD)
         list(APPEND YUZU_QT_COMPONENTS DBus)
+        # yes Qt, we get it
+        set(QT_NO_PRIVATE_MODULE_WARNING ON)
+        list(APPEND YUZU_QT_OPTIONAL GuiPrivate)
     endif()
+
     if (YUZU_USE_QT_MULTIMEDIA)
         list(APPEND YUZU_QT_COMPONENTS Multimedia)
     endif()
+
     if (YUZU_USE_QT_WEB_ENGINE)
         list(APPEND YUZU_QT_COMPONENTS WebEngineCore WebEngineWidgets)
     endif()
+
     if (ENABLE_QT_TRANSLATION)
         list(APPEND YUZU_QT_COMPONENTS LinguistTools)
     endif()
 
-    find_package(Qt6 REQUIRED COMPONENTS ${YUZU_QT_COMPONENTS})
+    find_package(Qt6 REQUIRED COMPONENTS ${YUZU_QT_COMPONENTS} OPTIONAL_COMPONENTS ${YUZU_QT_OPTIONAL})
     set(QT_MAJOR_VERSION 6)
     # Qt6 sets cxx_std_17 and we need to undo that
     set_target_properties(Qt6::Platform PROPERTIES INTERFACE_COMPILE_FEATURES "")
@@ -712,6 +718,12 @@ if (MSVC AND CXX_CLANG)
 endif()
 
 add_subdirectory(src)
+
+if (ENABLE_DEBUG_TOOLS)
+    add_subdirectory(tools/maxwell-disas)
+    add_subdirectory(tools/maxwell-spirv)
+    add_subdirectory(tools/maxwell-ir)
+endif()
 
 # Set yuzu project or yuzu-cmd project as default StartUp Project in Visual Studio depending on whether QT is enabled or not
 if(ENABLE_QT)

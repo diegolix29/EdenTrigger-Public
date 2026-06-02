@@ -59,7 +59,57 @@ Scheduler::Scheduler(const Device& device_, StateTracker& state_tracker_)
 
     AcquireNewChunk();
     AllocateWorkerCommandBuffer();
-    worker_thread = std::jthread([this](std::stop_token token) { WorkerThread(token); });
+    worker_thread = std::jthread([this](std::stop_token stop_token) {
+        Common::SetCurrentThreadName("VulkanWorker");
+        const auto TryPopQueue{[this](auto& work) -> bool {
+            if (work_queue.empty()) {
+                return false;
+            }
+
+            work = std::move(work_queue.front());
+            work_queue.pop();
+            event_cv.notify_all();
+            return true;
+        }};
+
+        while (!stop_token.stop_requested()) {
+            std::unique_ptr<CommandChunk> work;
+
+            {
+                std::unique_lock lk{queue_mutex};
+
+                // Wait for work.
+                event_cv.wait(lk, stop_token, [&] { return TryPopQueue(work); });
+
+                // If we've been asked to stop, we're done.
+                if (stop_token.stop_requested()) {
+                    return;
+                }
+
+                // Exchange lock ownership so that we take the execution lock before
+                // the queue lock goes out of scope. This allows us to force execution
+                // to complete in the next step.
+                std::exchange(lk, std::unique_lock{execution_mutex});
+
+                // Perform the work, tracking whether the chunk was a submission
+                // before executing.
+                const bool has_submit = work->HasSubmit();
+                work->ExecuteAll(current_cmdbuf, current_upload_cmdbuf);
+
+                // If the chunk was a submission, reallocate the command buffer.
+                if (has_submit) {
+                    AllocateWorkerCommandBuffer();
+                }
+            }
+
+            {
+                std::scoped_lock rl{reserve_mutex};
+
+                // Recycle the chunk back to the reserve.
+                chunk_reserve.emplace_back(std::move(work));
+            }
+        }
+    });
 }
 
 Scheduler::~Scheduler() = default;
@@ -187,59 +237,6 @@ bool Scheduler::UpdateRescaling(bool is_rescaling) {
     return true;
 }
 
-void Scheduler::WorkerThread(std::stop_token stop_token) {
-    Common::SetCurrentThreadName("VulkanWorker");
-
-    const auto TryPopQueue{[this](auto& work) -> bool {
-        if (work_queue.empty()) {
-            return false;
-        }
-
-        work = std::move(work_queue.front());
-        work_queue.pop();
-        event_cv.notify_all();
-        return true;
-    }};
-
-    while (!stop_token.stop_requested()) {
-        std::unique_ptr<CommandChunk> work;
-
-        {
-            std::unique_lock lk{queue_mutex};
-
-            // Wait for work.
-            event_cv.wait(lk, stop_token, [&] { return TryPopQueue(work); });
-
-            // If we've been asked to stop, we're done.
-            if (stop_token.stop_requested()) {
-                return;
-            }
-
-            // Exchange lock ownership so that we take the execution lock before
-            // the queue lock goes out of scope. This allows us to force execution
-            // to complete in the next step.
-            std::exchange(lk, std::unique_lock{execution_mutex});
-
-            // Perform the work, tracking whether the chunk was a submission
-            // before executing.
-            const bool has_submit = work->HasSubmit();
-            work->ExecuteAll(current_cmdbuf, current_upload_cmdbuf);
-
-            // If the chunk was a submission, reallocate the command buffer.
-            if (has_submit) {
-                AllocateWorkerCommandBuffer();
-            }
-        }
-
-        {
-            std::scoped_lock rl{reserve_mutex};
-
-            // Recycle the chunk back to the reserve.
-            chunk_reserve.emplace_back(std::move(work));
-        }
-    }
-}
-
 void Scheduler::AllocateWorkerCommandBuffer() {
     current_cmdbuf = vk::CommandBuffer(command_pool->Commit(), device.GetDispatchLoader());
     current_cmdbuf.Begin({
@@ -270,8 +267,8 @@ u64 Scheduler::SubmitExecution(VkSemaphore signal_semaphore, VkSemaphore wait_se
             .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
             .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
         };
-        upload_cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                      VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, WRITE_BARRIER);
+        upload_cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT
+            | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, WRITE_BARRIER);
         upload_cmdbuf.End();
         cmdbuf.End();
 

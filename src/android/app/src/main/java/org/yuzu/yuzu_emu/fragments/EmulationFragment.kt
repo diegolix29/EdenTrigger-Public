@@ -1096,7 +1096,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
     private fun addQuickSettings() {
         binding.quickSettingsSheet.apply {
             val container = binding.quickSettingsSheet.findViewById<ViewGroup>(R.id.quick_settings_container)
-            val isFsrSelected = isFsrScalingFilterSelected()
+            val isSharpnessFilterSelected = isSharpnessScalingFilterSelected()
 
             container.removeAllViews()
 
@@ -1205,7 +1205,7 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
                 addQuickSettings()
             }
 
-            if (isFsrSelected) {
+            if (isSharpnessFilterSelected) {
                 quickSettings.addSliderSetting(
                     R.string.fsr_sharpness,
                     container,
@@ -1228,17 +1228,24 @@ class EmulationFragment : Fragment(), SurfaceHolder.Callback {
         updateMemoryFlushButtonVisibility()
     }
 
-    private fun isFsrScalingFilterSelected(): Boolean {
-        val fsrFilterValue = resolveFsrScalingFilterValue() ?: return false
+    private fun isSharpnessScalingFilterSelected(): Boolean {
         val selectedFilter = IntSetting.RENDERER_SCALING_FILTER.getInt(needsGlobal = false)
-        return selectedFilter == fsrFilterValue
+        return selectedFilter in resolveSharpnessScalingFilterValues()
     }
 
-    private fun resolveFsrScalingFilterValue(): Int? {
+    private fun resolveSharpnessScalingFilterValues(): Set<Int> {
         val names = resources.getStringArray(R.array.rendererScalingFilterNames)
         val values = resources.getIntArray(R.array.rendererScalingFilterValues)
-        val fsrIndex = names.indexOf(getString(R.string.scaling_filter_fsr))
-        return if (fsrIndex in values.indices) values[fsrIndex] else null
+        val sharpnessFilterNames = setOf(
+            getString(R.string.scaling_filter_fsr),
+            getString(R.string.scaling_filter_sgsr),
+            getString(R.string.scaling_filter_sgsr_edge),
+        )
+        return names.asSequence()
+            .mapIndexedNotNull { index, name ->
+                if (name in sharpnessFilterNames && index in values.indices) values[index] else null
+            }
+            .toSet()
     }
 
     private fun openQuickSettingsMenu() {

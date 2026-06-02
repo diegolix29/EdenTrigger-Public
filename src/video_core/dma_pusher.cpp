@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
+// SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 // SPDX-FileCopyrightText: Copyright 2021 yuzu Emulator Project
@@ -26,7 +26,7 @@ constexpr u32 MacroRegistersStart = 0xE00;
 DmaPusher::DmaPusher(Core::System& system_, GPU& gpu_, MemoryManager& memory_manager_,
                      Control::ChannelState& channel_state_)
     : gpu{gpu_}, system{system_}, memory_manager{memory_manager_}, puller{gpu_, memory_manager_,
-                                                                          *this, channel_state_}, signal_sync{false}, synced{false} {}
+                                                                          *this, channel_state_}, signal_sync{false}, synced{true} {}
 
 DmaPusher::~DmaPusher() = default;
 
@@ -181,12 +181,12 @@ void DmaPusher::CallMethod(u32 argument) const {
         });
     } else {
         auto subchannel = subchannels[dma_state.subchannel];
-        if (!subchannel->execution_mask[dma_state.method]) {
-            subchannel->method_sink.emplace_back(dma_state.method, argument);
-        } else {
+        if (subchannel->execution_mask[dma_state.method]) {
             subchannel->ConsumeSink();
             subchannel->current_dma_segment = dma_state.dma_get + dma_state.dma_word_offset;
             subchannel->CallMethod(dma_state.method, argument, dma_state.is_last_call);
+        } else {
+            subchannel->method_sink.emplace_back(dma_state.method, argument);
         }
     }
 }
