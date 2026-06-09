@@ -95,8 +95,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    if (StartupChecks(argv[0], &has_broken_vulkan,
-                      Settings::values.perform_vulkan_check.GetValue())) {
+    const bool perform_vulkan_check = Settings::values.perform_vulkan_check.GetValue();
+    if (StartupChecks(argv[0], &has_broken_vulkan, perform_vulkan_check)) {
         return 0;
     }
 
