@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.31)
 
 project(yuzu)
 
@@ -10,6 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/externals/cmake-modul
 
 set(CPM_SOURCE_CACHE ${CMAKE_SOURCE_DIR}/.cache/cpm)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES 0)
 
 include(DetectPlatform)
 include(DetectArchitecture)
@@ -306,7 +307,7 @@ if (YUZU_ROOM)
     add_compile_definitions(YUZU_ROOM)
 endif()
 
-if ((ANDROID OR APPLE OR UNIX) AND (NOT PLATFORM_LINUX OR ANDROID) AND NOT WIN32)
+if (UNIX AND NOT (PLATFORM_LINUX OR WIN32))
     if(CXX_APPLE OR CXX_CLANG)
         # libc++ has stop_token and jthread as experimental
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexperimental-library")
@@ -383,13 +384,20 @@ find_package(RenderDoc MODULE)
 # openssl funniness
 if (YUZU_USE_BUNDLED_OPENSSL)
     set(BUILD_SHARED_LIBS OFF)
+    AddJsonPackage(openssl-ci)
+else()
     AddJsonPackage(openssl)
+    set(OPENSSL_BUILD_VERBOSE ON)
+    set(OPENSSL_CONFIGURE_VERBOSE ON)
+
     if (OpenSSL_ADDED)
-        add_compile_definitions(YUZU_BUNDLED_OPENSSL)
+        AddJsonPackage(openssl-cmake)
     endif()
 endif()
 
-find_package(OpenSSL 3 REQUIRED)
+if (OpenSSL_ADDED)
+    add_compile_definitions(YUZU_BUNDLED_OPENSSL)
+endif()
 
 message(STATUS "Fetching needed dependencies with CPM")
 
@@ -505,7 +513,7 @@ endfunction()
 # =============================================
 
 if (APPLE)
-    foreach(fw Carbon Metal Cocoa IOKit CoreVideo CoreMedia Security)
+    foreach(fw Carbon Metal Cocoa IOKit CoreVideo CoreMedia Security UniformTypeIdentifiers)
         find_library(${fw}_LIBRARY ${fw} REQUIRED)
         list(APPEND PLATFORM_LIBRARIES ${${fw}_LIBRARY})
     endforeach()
@@ -517,6 +525,8 @@ elseif (WIN32)
         # PSAPI is the Process Status API
         set(PLATFORM_LIBRARIES ${PLATFORM_LIBRARIES} psapi imm32 version crypt32 rpcrt4 gdi32 wldap32 mswsock)
     endif()
+elseif (PLATFORM_MANAGARM)
+    set(PLATFORM_LIBRARIES iconv intl)
 elseif (PLATFORM_HAIKU)
     # Haiku is so special :)
     set(PLATFORM_LIBRARIES bsd /boot/system/lib/libnetwork.so)

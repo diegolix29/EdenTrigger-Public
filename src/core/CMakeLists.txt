@@ -1200,7 +1200,7 @@ else()
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-cast-function-type>
         $<$<CXX_COMPILER_ID:Clang>:-fsized-deallocation>)
     # pre-clang19 will spam with "OH DID YOU MEAN THIS?" otherwise...
-    if (CXX_CLANG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19)
+    if (CXX_CLANG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20)
         target_compile_options(core PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-cast-function-type-mismatch>)
     endif()
 endif()
@@ -1215,6 +1215,7 @@ else()
 endif()
 
 target_link_libraries(core PRIVATE
+    OpenSSL::SSL
     fmt::fmt
     nlohmann_json::nlohmann_json
     RenderDoc::API

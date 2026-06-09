@@ -141,12 +141,12 @@ add_library(
     vector_math.h
     virtual_buffer.cpp
     virtual_buffer.h
-    wall_clock.cpp
-    wall_clock.h
     zstd_compression.cpp
     zstd_compression.h
     fs/ryujinx_compat.h fs/ryujinx_compat.cpp
     fs/symlink.h fs/symlink.cpp
+    cpu_features.cpp
+    cpu_features.h
     httplib.h
     net/net.h net/net.cpp)
 
@@ -180,10 +180,7 @@ endif()
 if(ARCHITECTURE_x86_64)
     target_sources(
         common
-        PRIVATE x64/cpu_detect.cpp
-        x64/cpu_detect.h
-        x64/cpu_wait.cpp
-        x64/cpu_wait.h
+        PRIVATE
         x64/rdtsc.cpp
         x64/rdtsc.h
         x64/xbyak.h)
@@ -234,11 +231,11 @@ if(CXX_CLANG)
 endif()
 
 if (BOOST_NO_HEADERS)
-    target_link_libraries(common PUBLIC Boost::algorithm Boost::icl Boost::pool)
+    target_link_libraries(common PUBLIC Boost::algorithm Boost::heap Boost::icl Boost::pool)
 else()
     target_link_libraries(common PUBLIC Boost::headers)
 endif()
-
+target_link_libraries(common PRIVATE OpenSSL::SSL)
 target_link_libraries(common PUBLIC Boost::filesystem Boost::context httplib::httplib nlohmann_json::nlohmann_json)
 
 if (lz4_ADDED)
@@ -246,7 +243,12 @@ if (lz4_ADDED)
 endif()
 
 target_link_libraries(common PUBLIC fmt::fmt stb::headers Threads::Threads unordered_dense::unordered_dense)
-target_link_libraries(common PRIVATE lz4::lz4 LLVM::Demangle zstd::zstd)
+target_link_libraries(common PRIVATE lz4::lz4 zstd::zstd)
+
+# Please refer to src/common/demangle.cpp
+if (WIN32)
+    target_link_libraries(common PRIVATE LLVM::Demangle)
+endif()
 
 if(ANDROID)
     # For ASharedMemory_create

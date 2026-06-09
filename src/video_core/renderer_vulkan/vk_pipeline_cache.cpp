@@ -45,7 +45,7 @@
 #include "video_core/vulkan_common/vulkan_wrapper.h"
 #include "video_core/gpu_logging/gpu_logging.h"
 
-#ifdef ANDROID
+#ifdef __ANDROID__
 #include "../../android/app/src/main/jni/android_settings.h"
 #endif
 
@@ -328,7 +328,7 @@ Shader::RuntimeInfo MakeRuntimeInfo(std::span<const Shader::IR::Program> program
 size_t GetTotalPipelineWorkers() {
     const size_t max_core_threads =
         std::max<size_t>(static_cast<size_t>(std::thread::hardware_concurrency()), 2ULL) - 1ULL;
-#ifdef ANDROID
+#ifdef __ANDROID__
     const int configured = AndroidSettings::values.pipeline_worker_count.GetValue();
     const int clamped = std::clamp(configured, 4, 8);
     const size_t desired = static_cast<size_t>(clamped);
@@ -492,8 +492,7 @@ PipelineCache::PipelineCache(Tegra::MaxwellDeviceMemoryManager& device_memory_,
         device.IsExtExtendedDynamicState3BlendingSupported();
     dynamic_features.has_extended_dynamic_state_3_enables =
         device.IsExtExtendedDynamicState3EnablesSupported();
-    dynamic_features.has_dynamic_state3_depth_clamp_enable =
-        device.SupportsDynamicState3DepthClampEnable();
+    dynamic_features.has_dynamic_state3_depth_clamp_enable = false;
     dynamic_features.has_dynamic_state3_logic_op_enable =
         device.SupportsDynamicState3LogicOpEnable();
     dynamic_features.has_dynamic_state3_line_stipple_enable =

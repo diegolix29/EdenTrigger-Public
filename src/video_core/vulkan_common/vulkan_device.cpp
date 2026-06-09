@@ -26,7 +26,7 @@
 #include "video_core/vulkan_common/vulkan_wrapper.h"
 #include "video_core/gpu_logging/gpu_logging.h"
 
-#if defined(ANDROID) && defined(ARCHITECTURE_arm64)
+#if defined(__ANDROID__) && defined(ARCHITECTURE_arm64)
 #include <adrenotools/bcenabler.h>
 #include <android/api-level.h>
 #endif
@@ -294,7 +294,7 @@ ankerl::unordered_dense::map<VkFormat, VkFormatProperties> GetFormatProperties(v
     return format_properties;
 }
 
-#if defined(ANDROID) && defined(ARCHITECTURE_arm64)
+#if defined(__ANDROID__) && defined(ARCHITECTURE_arm64)
 void OverrideBcnFormats(ankerl::unordered_dense::map<VkFormat, VkFormatProperties>& format_properties) {
     // These properties are extracted from Adreno driver 512.687.0
     constexpr VkFormatFeatureFlags tiling_features{VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
@@ -486,11 +486,15 @@ Device::Device(VkInstance instance_, vk::PhysicalDevice physical_, VkSurfaceKHR 
     CollectToolingInfo();
 
     if (is_qualcomm) {
-        // Qualcomm Adreno GPUs doesn't handle scaled vertex attributes; keep emulation enabled
+        LOG_WARNING(Render_Vulkan,
+                    "Qualcomm drivers require scaled vertex format emulation");
         must_emulate_scaled_formats = true;
         LOG_WARNING(Render_Vulkan,
-                    "Qualcomm drivers require scaled vertex format emulation; forcing fallback");
-
+                    "Qualcomm drivers have broken provoking vertex");
+        RemoveExtension(extensions.provoking_vertex, VK_EXT_PROVOKING_VERTEX_EXTENSION_NAME);
+        LOG_WARNING(Render_Vulkan,
+                    "Qualcomm drivers have slow push descriptor implementation");
+        RemoveExtension(extensions.push_descriptor, VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
         LOG_WARNING(Render_Vulkan,
                     "Disabling shader float controls and 64-bit integer features on Qualcomm proprietary drivers");
         RemoveExtension(extensions.shader_float_controls, VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
@@ -500,7 +504,7 @@ Device::Device(VkInstance instance_, vk::PhysicalDevice physical_, VkSurfaceKHR 
         features.shader_atomic_int64.shaderSharedInt64Atomics = false;
         features.features.shaderInt64 = false;
 
-#if defined(ANDROID) && defined(ARCHITECTURE_arm64)
+#if defined(__ANDROID__) && defined(ARCHITECTURE_arm64)
         // BCn patching only safe on Android 9+ (API 28+). Older versions crash on driver load.
         const auto major = (properties.properties.driverVersion >> 24) << 2;
         const auto minor = (properties.properties.driverVersion >> 12) & 0xFFFU;
@@ -1477,6 +1481,12 @@ void Device::CollectToolingInfo() {
         has_nsight_graphics = has_nsight_graphics || name == "NVIDIA Nsight Graphics";
         has_radeon_gpu_profiler = has_radeon_gpu_profiler || name == "Radeon GPU Profiler";
     }
+#ifdef _WIN32
+    if (has_renderdoc) {
+        LOG_INFO(Render_Vulkan,
+                 "Windows default RenderDoc output folder: %LOCALAPPDATA%\\Temp\\RenderDoc");
+    }
+#endif
 }
 
 std::vector<VkDeviceQueueCreateInfo> Device::GetDeviceQueueCreateInfos() const {

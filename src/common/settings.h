@@ -364,7 +364,7 @@ struct Values {
                                                     true,
                                                     true};
     SwitchableSetting<int, true> fsr_sharpening_slider{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                        0,
 #else
                                                        25,
@@ -422,7 +422,7 @@ struct Values {
                                          linkage, 0, "bg_blue", Category::Renderer, Specialization::Default, true, true};
 
     SwitchableSetting<GpuAccuracy, true> gpu_accuracy{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                       GpuAccuracy::Low,
 #else
                                                       GpuAccuracy::Medium,
@@ -452,7 +452,7 @@ struct Values {
                                                       "nvdec_emulation", Category::RendererAdvanced};
 
     SwitchableSetting<AnisotropyMode, true> max_anisotropy{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                            AnisotropyMode::Default,
 #else
                                                            AnisotropyMode::Automatic,
@@ -505,7 +505,7 @@ struct Values {
                                                 Category::RendererAdvanced};
 
     SwitchableSetting<bool> use_reactive_flushing{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                   false,
 #else
                                                   true,
@@ -524,7 +524,7 @@ struct Values {
                                                   true,
                                                   true};
 
-#ifdef ANDROID
+#ifdef __ANDROID__
     SwitchableSetting<bool> use_optimized_vertex_buffers{linkage,
                                                  false,
                                                  "use_optimized_vertex_buffers",
@@ -558,7 +558,7 @@ struct Values {
                                         true,
                                         true};
     SwitchableSetting<bool> async_presentation{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                false,
 #else
                                                false,
@@ -604,7 +604,7 @@ struct Values {
                                                   Category::RendererHacks};
 
     SwitchableSetting<ExtendedDynamicState> dyna_state{linkage,
-#if defined(ANDROID)
+#if defined(__ANDROID__)
                                            ExtendedDynamicState::Disabled,
 #elif defined(__APPLE__)
                                            ExtendedDynamicState::Disabled,
@@ -623,7 +623,7 @@ struct Values {
                                                 Specialization::Scalar};
 
     SwitchableSetting<bool> vertex_input_dynamic_state{linkage,
-#if defined (ANDROID)
+#ifdef __ANDROID__
                                                        false,
 #else
                                                        true,
@@ -639,7 +639,7 @@ struct Values {
                                                     linkage, false, "disable_shader_loop_safety_checks", Category::RendererDebug};
     Setting<bool> enable_renderdoc_hotkey{linkage, false, "renderdoc_hotkey",
                                           Category::RendererDebug};
-#if defined(ANDROID) && defined(ARCHITECTURE_arm64)
+#if defined(__ANDROID__) && defined(ARCHITECTURE_arm64)
     // Debug override for automatic BCn patching detection
     Setting<bool> patch_old_qcom_drivers{linkage, false, "patch_old_qcom_drivers",
                                          Category::RendererDebug};
@@ -684,7 +684,7 @@ struct Values {
     Setting<s32> current_user{linkage, 0, "current_user", Category::System};
 
     SwitchableSetting<ConsoleMode> use_docked_mode{linkage,
-#ifdef ANDROID
+#ifdef __ANDROID__
                                                    ConsoleMode::Handheld,
 #else
                                                    ConsoleMode::Docked,

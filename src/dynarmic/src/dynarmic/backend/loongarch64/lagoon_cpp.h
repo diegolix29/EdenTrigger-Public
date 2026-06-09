@@ -3,8 +3,6 @@
 
 #pragma once
 
-namespace Common::X64 {
-
-void MicroSleep();
-
-} // namespace Common::X64
+extern "C" {
+#include <lagoon.h>
+}
