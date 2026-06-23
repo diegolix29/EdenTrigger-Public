@@ -128,8 +128,8 @@ public:
         current_query = nullptr;
         amend_value = 0;
         accumulation_value = 0;
-        queries_prefix_scan_pass = std::make_unique<QueriesPrefixScanPass>(
-            device, scheduler, descriptor_pool, compute_pass_descriptor_queue);
+        queries_prefix_scan_pass.emplace(device, scheduler, descriptor_pool,
+                                         compute_pass_descriptor_queue);
 
         const VkBufferCreateInfo buffer_ci = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -159,7 +159,7 @@ public:
         ReserveHostQuery();
 
         scheduler.Record([query_pool = current_query_pool,
-                                 query_index = current_bank_slot](vk::CommandBuffer cmdbuf) {
+                          query_index = current_bank_slot](vk::CommandBuffer cmdbuf) {
             const bool use_precise = Settings::IsGPULevelHigh();
             cmdbuf.BeginQuery(query_pool, static_cast<u32>(query_index),
                               use_precise ? VK_QUERY_CONTROL_PRECISE_BIT : 0);
@@ -593,8 +593,7 @@ private:
     VideoCommon::HostQueryBase* current_query;
     bool has_started{};
     std::mutex flush_guard;
-
-    std::unique_ptr<QueriesPrefixScanPass> queries_prefix_scan_pass;
+    std::optional<QueriesPrefixScanPass> queries_prefix_scan_pass;
 };
 
 // Transform feedback queries
@@ -790,6 +789,7 @@ public:
             new_query->flags |= VideoCommon::QueryFlagBits::IsFinalValueSynced;
             return index;
         }
+
         scheduler.RequestOutsideRenderPassOperationContext();
         CloseCounter();
         auto [bank_slot, data_slot] = ProduceCounterBuffer(slot);
@@ -845,8 +845,8 @@ public:
         };
         scheduler.RequestOutsideRenderPassOperationContext();
         scheduler.Record([](vk::CommandBuffer cmdbuf) {
-            cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                   vk::PIPELINE_STAGE_HOST, 0, WRITE_BARRIER);
+            cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT, vk::PIPELINE_STAGE_HOST, 0,
+                                   WRITE_BARRIER);
         });
 
         std::scoped_lock lk(flush_guard);
@@ -926,6 +926,7 @@ private:
             return;
         }
         has_flushed_end_pending = false;
+
         // Refresh buffer state before ending transform feedback to ensure counters_count is
         // up-to-date.
         UpdateBuffers();
@@ -1281,31 +1282,26 @@ struct QueryCacheRuntimeImpl {
         : rasterizer{rasterizer_}, device_memory{device_memory_}, buffer_cache{buffer_cache_},
           device{device_}, memory_allocator{memory_allocator_}, scheduler{scheduler_},
           staging_pool{staging_pool_}, guest_streamer(0, runtime),
-          sample_streamer(static_cast<size_t>(QueryType::ZPassPixelCount64), runtime, rasterizer,
-                          texture_cache_, device, scheduler, memory_allocator,
-                          compute_pass_descriptor_queue, descriptor_pool),
-          tfb_streamer(static_cast<size_t>(QueryType::StreamingByteCount), runtime, device,
-                       scheduler, memory_allocator, staging_pool),
-          primitives_succeeded_streamer(
-              static_cast<size_t>(QueryType::StreamingPrimitivesSucceeded), runtime, tfb_streamer,
-              device_memory_),
+          sample_streamer(size_t(QueryType::ZPassPixelCount64), runtime, rasterizer, texture_cache_,
+                          device, scheduler, memory_allocator, compute_pass_descriptor_queue,
+                          descriptor_pool),
+          tfb_streamer(size_t(QueryType::StreamingByteCount), runtime, device, scheduler,
+                       memory_allocator, staging_pool),
+          primitives_succeeded_streamer(size_t(QueryType::StreamingPrimitivesSucceeded), runtime,
+                                        tfb_streamer, device_memory_),
           primitives_needed_minus_succeeded_streamer(
-              static_cast<size_t>(QueryType::StreamingPrimitivesNeededMinusSucceeded), runtime, 0u),
+              size_t(QueryType::StreamingPrimitivesNeededMinusSucceeded), runtime, 0u),
           hcr_setup{}, hcr_is_set{}, is_hcr_running{}, maxwell3d{} {
 
         hcr_setup.sType = VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT;
         hcr_setup.pNext = nullptr;
         hcr_setup.flags = 0;
 
-        const bool has_conditional_rendering = device.IsExtConditionalRendering();
-        if (has_conditional_rendering) {
-            conditional_resolve_pass = std::make_unique<ConditionalRenderingResolvePass>(
-                device, scheduler, descriptor_pool, compute_pass_descriptor_queue);
-        }
-
         VkBufferUsageFlags hcr_buffer_usage =
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        if (has_conditional_rendering) {
+        if (device.IsExtConditionalRendering()) {
+            conditional_resolve_pass.emplace(device, scheduler, descriptor_pool,
+                                             compute_pass_descriptor_queue);
             hcr_buffer_usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
 
@@ -1344,7 +1340,7 @@ struct QueryCacheRuntimeImpl {
     std::vector<std::vector<VkBufferCopy>> copies_setup;
 
     // Host conditional rendering data
-    std::unique_ptr<ConditionalRenderingResolvePass> conditional_resolve_pass;
+    std::optional<ConditionalRenderingResolvePass> conditional_resolve_pass;
     vk::Buffer hcr_resolve_buffer;
     VkConditionalRenderingBeginInfoEXT hcr_setup;
     VkBuffer hcr_buffer;
@@ -1600,7 +1596,8 @@ void QueryCacheRuntime::Barriers(bool is_prebarrier) {
     } else {
         impl->scheduler.Record([](vk::CommandBuffer cmdbuf) {
             cmdbuf.PipelineBarrier(VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                   vk::PIPELINE_STAGE_GRAPHICS_COMPUTE_TRANSFER_HOST, 0, WRITE_BARRIER);
+                                   vk::PIPELINE_STAGE_GRAPHICS_COMPUTE_TRANSFER_HOST, 0,
+                                   WRITE_BARRIER);
         });
     }
 }
