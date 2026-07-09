@@ -8,11 +8,13 @@
 #include <mutex>
 #include <string>
 #include <tuple>
-#include "common/cpu_features.h"
-#include "common/cpu_features.h"
 
 #ifdef _WIN32
 #include "common/windows/timer_resolution.h"
+#endif
+
+#ifdef ARCHITECTURE_x86_64
+#include "common/x64/cpu_wait.h"
 #endif
 
 #include "common/settings.h"
@@ -45,7 +47,8 @@ struct CoreTiming::Event {
     }
 };
 
-CoreTiming::CoreTiming() = default;
+CoreTiming::CoreTiming() : clock{Common::CreateOptimalClock()} {}
+
 CoreTiming::~CoreTiming() {
     Reset();
 }
@@ -61,16 +64,31 @@ void CoreTiming::Initialize(std::function<void()>&& on_thread_init_) {
             Common::SetCurrentThreadPriority(Common::ThreadPriority::High);
             on_thread_init();
             has_started = true;
-
-            // base frequency in MHz: 1ns (10^-9) = 1GHz (10^9)
             while (!stop_token.stop_requested()) {
                 while (!paused && !stop_token.stop_requested()) {
                     paused_set = false;
                     if (auto const next_time = Advance(); next_time) {
                         // There are more events left in the queue, wait until the next event.
-                        auto const wait_time = *next_time - GetGlobalTimeNs().count();
+                        auto wait_time = *next_time - GetGlobalTimeNs().count();
                         if (wait_time > 0) {
+#ifdef _WIN32
+                            while (!paused && !event.IsSet() && wait_time > 0) {
+                                wait_time = *next_time - GetGlobalTimeNs().count();
+                                if (wait_time >= timer_resolution_ns) {
+                                    Common::Windows::SleepForOneTick();
+                                } else {
+#ifdef ARCHITECTURE_x86_64
+                                    Common::X64::MicroSleep();
+#else
+                                    std::this_thread::yield();
+#endif
+                                }
+                            }
+                            if (event.IsSet())
+                                event.Reset();
+#else
                             event.WaitFor(std::chrono::nanoseconds(wait_time));
+#endif
                         }
                     } else {
                         // Queue is empty, wait until another event is scheduled and signals us to
@@ -208,7 +226,7 @@ void CoreTiming::ResetTicks() {
 }
 
 u64 CoreTiming::GetClockTicks() const {
-    u64 fres = is_multicore ? Common::g_wall_clock.GetCNTPCT() : Common::WallClock::CPUTickToCNTPCT(cpu_ticks);
+    u64 fres = is_multicore ? clock.GetCNTPCT() : Common::WallClock::CPUTickToCNTPCT(cpu_ticks);
     if (auto const overclock = Settings::values.fast_cpu_time.GetValue(); overclock != Settings::CpuClock::Off) {
         fres = u64(f64(fres) * (1.7 + 0.3 * u32(overclock)));
     }
@@ -222,7 +240,7 @@ u64 CoreTiming::GetClockTicks() const {
 
 u64 CoreTiming::GetGPUTicks() const {
     return is_multicore
-        ? Common::g_wall_clock.GetGPUTick()
+        ? clock.GetGPUTick()
         : Common::WallClock::CPUTickToGPUTick(cpu_ticks);
 }
 
@@ -299,14 +317,14 @@ void CoreTiming::Reset() {
 /// @brief Returns current time in nanoseconds.
 std::chrono::nanoseconds CoreTiming::GetGlobalTimeNs() const noexcept {
     return is_multicore
-        ? Common::g_wall_clock.GetTimeNS()
+        ? clock.GetTimeNS()
         : std::chrono::nanoseconds{Common::WallClock::CPUTickToNS(cpu_ticks)};
 }
 
 /// @brief Returns current time in microseconds.
 std::chrono::microseconds CoreTiming::GetGlobalTimeUs() const noexcept {
     return is_multicore
-        ? Common::g_wall_clock.GetTimeUS()
+        ? clock.GetTimeUS()
         : std::chrono::microseconds{Common::WallClock::CPUTickToUS(cpu_ticks)};
 }
 

@@ -141,12 +141,12 @@ add_library(
     vector_math.h
     virtual_buffer.cpp
     virtual_buffer.h
+    wall_clock.cpp
+    wall_clock.h
     zstd_compression.cpp
     zstd_compression.h
     fs/ryujinx_compat.h fs/ryujinx_compat.cpp
     fs/symlink.h fs/symlink.cpp
-    cpu_features.cpp
-    cpu_features.h
     httplib.h
     net/net.h net/net.cpp)
 
@@ -180,7 +180,10 @@ endif()
 if(ARCHITECTURE_x86_64)
     target_sources(
         common
-        PRIVATE
+        PRIVATE x64/cpu_detect.cpp
+        x64/cpu_detect.h
+        x64/cpu_wait.cpp
+        x64/cpu_wait.h
         x64/rdtsc.cpp
         x64/rdtsc.h
         x64/xbyak.h)
@@ -231,7 +234,7 @@ if(CXX_CLANG)
 endif()
 
 if (BOOST_NO_HEADERS)
-    target_link_libraries(common PUBLIC Boost::algorithm Boost::heap Boost::icl Boost::pool)
+    target_link_libraries(common PUBLIC Boost::algorithm Boost::icl Boost::pool)
 else()
     target_link_libraries(common PUBLIC Boost::headers)
 endif()

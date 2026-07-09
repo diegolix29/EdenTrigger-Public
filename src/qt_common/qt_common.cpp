@@ -14,8 +14,11 @@
 #include "common/fs/path_util.h"
 #include "common/logging.h"
 #include "common/scm_rev.h"
-#include "common/cpu_features.h"
 #include "core/memory.h"
+
+#ifdef ARCHITECTURE_x86_64
+#include "common/x64/cpu_detect.h"
+#endif
 
 #include <QGuiApplication>
 #include <QStringLiteral>
@@ -242,7 +245,7 @@ void Init(QWidget* root) {
     LOG_INFO(Frontend, "Eden Version: {}", yuzu_build_version);
     LogRuntimes();
 #ifdef ARCHITECTURE_x86_64
-    const auto& caps = Common::g_cpu_caps;
+    const auto& caps = Common::GetCPUCaps();
     std::string cpu_string = caps.cpu_string;
     if (caps.avx || caps.avx2 || caps.avx512f) {
         cpu_string += " | AVX";
