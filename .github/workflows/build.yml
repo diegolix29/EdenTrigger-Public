@@ -8,8 +8,9 @@
 #   - docs/Deps.md, docs/Build.md, docs/build/Android.md (package lists)
 #   - .ci/android/build.sh (Android build/signing script)
 #
-# Builds: Linux (Qt6), Windows (MSVC, bundled Qt), macOS (Qt6 via Homebrew),
-#         Android (Gradle), and an optional/experimental FreeBSD job.
+# Builds: Linux (Qt6), Windows x86_64 (MSVC, bundled Qt), Windows ARM64
+#         (MSVC cross-compile, experimental), macOS arm64 + x86_64 (Qt6 via
+#         Homebrew), Android (Gradle), and an optional/experimental FreeBSD job.
 
 name: Build
 
@@ -93,11 +94,11 @@ jobs:
           path: artifacts/*
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Windows (MSVC + bundled Qt/SDL3/FFmpeg — these default ON for MSVC in
-  # CMakeLists.txt, so the only external requirement is the Vulkan SDK)
+  # Windows x86_64 (MSVC + bundled Qt/SDL3/FFmpeg — these default ON for MSVC
+  # in CMakeLists.txt, so the only external requirement is the Vulkan SDK)
   # ─────────────────────────────────────────────────────────────────────────
   windows:
-    name: Windows (MSVC)
+    name: Windows (MSVC x86_64)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -137,10 +138,75 @@ jobs:
           path: artifacts/*
 
   # ─────────────────────────────────────────────────────────────────────────
-  # macOS (Qt6 via Homebrew — mirrors docs/Deps.md "macOS")
+  # Windows ARM64 (EXPERIMENTAL — cross-compiled with MSVC on an x86_64 host
+  # runner via `arch: arm64`; there is no native arm64-hosted GitHub runner
+  # in general availability at time of writing).
+  #
+  # Two things are unverified against this repo and likely to bite:
+  #   1. Bundled/vendored deps. The x86_64 job gets Qt/SDL3/FFmpeg "for free"
+  #      because MSVC_STATIC_BUNDLED (or equivalent) defaults ON and pulls
+  #      prebuilt binaries. Those prebuilts are commonly published for
+  #      win64 only in yuzu-derived externals systems — if there's no arm64
+  #      variant, CMake configure or link will fail. Check externals/CMakeLists.txt
+  #      / DetectPlatform.cmake for an arm64 branch before relying on this.
+  #   2. Vulkan SDK. install-vulkan-sdk.ps1 as used by the x86_64 job may
+  #      not accept/support an arm64 target — LunarG's arm64 Vulkan SDK
+  #      support has been inconsistent release to release. Confirm the
+  #      script supports selecting an architecture, or install the arm64
+  #      SDK package manually here if not.
+  #
+  # Treat this job like the FreeBSD one below: flip `if: false` off once
+  # you've confirmed (1) and (2) hold for this codebase.
+  # ─────────────────────────────────────────────────────────────────────────
+  windows-arm64:
+    name: Windows (MSVC ARM64, experimental)
+    runs-on: windows-latest
+    if: false # flip to `true` once bundled-dep / Vulkan SDK arm64 support is confirmed
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: ./tools/windows/install-vulkan-sdk.ps1
+        # NOTE: verify this script actually installs/links arm64 Vulkan
+        # libs; it may need an -Arch/-Target argument added upstream.
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: arm64
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+            -DCMAKE_SYSTEM_PROCESSOR=ARM64 `
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          Compress-Archive -Path build/bin/* -DestinationPath artifacts/eden-windows-arm64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-windows-arm64
+          path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # macOS arm64 (Qt6 via Homebrew — mirrors docs/Deps.md "macOS")
   # ─────────────────────────────────────────────────────────────────────────
   macos:
-    name: macOS
+    name: macOS (arm64)
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -157,7 +223,7 @@ jobs:
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1
         with:
-          key: macos
+          key: macos-arm64
 
       - name: Configure
         run: |
@@ -208,6 +274,79 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: eden-macos-arm64
+          path: artifacts/*.zip
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # macOS x86_64 (Qt6 via Homebrew — same job as arm64 above, but on an
+  # Intel runner. Only real difference is the Homebrew prefix: Intel
+  # Homebrew installs to /usr/local, not /opt/homebrew.
+  # macos-13 is GitHub's last Intel-hosted macOS image; if it's deprecated
+  # by the time you read this, swap in whatever Intel label replaces it,
+  # or drop this job if you no longer need Intel Mac coverage.
+  # ─────────────────────────────────────────────────────────────────────────
+  macos-x86_64:
+    name: macOS (x86_64)
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew install autoconf automake boost ffmpeg fmt glslang hidapi libtool \
+            libusb llvm lz4 ninja nlohmann-json openssl pkg-config qt@6 sdl3 speexdsp \
+            zlib zstd cmake Catch2 molten-vk vulkan-loader spirv-tools \
+            vulkan-utility-libraries
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: macos-x86_64
+
+      - name: Configure
+        run: |
+          export PATH="/usr/local/opt/qt@6/bin:$PATH"
+
+          # Same std::jthread/std::stop_token gap as the arm64 job above —
+          # Apple Clang's libc++ doesn't implement them, so use Homebrew's
+          # LLVM/libc++ instead of the system compiler.
+          LLVM_PREFIX="$(brew --prefix llvm)"
+          SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+
+          export CC="${LLVM_PREFIX}/bin/clang"
+          export CXX="${LLVM_PREFIX}/bin/clang++"
+
+          COMMON_FLAGS="-isysroot ${SDKROOT}"
+          LINK_FLAGS="-L${LLVM_PREFIX}/lib/c++ -Wl,-rpath,${LLVM_PREFIX}/lib/c++ ${COMMON_FLAGS}"
+
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER="${CC}" \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OSX_SYSROOT="${SDKROOT}" \
+            -DCMAKE_C_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_MODULE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_PREFIX_PATH="/usr/local/opt/qt@6" \
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          ditto build/bin artifacts/eden-macos-x86_64
+          (cd artifacts && zip -r eden-macos-x86_64.zip eden-macos-x86_64)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-macos-x86_64
           path: artifacts/*.zip
 
   # ─────────────────────────────────────────────────────────────────────────
