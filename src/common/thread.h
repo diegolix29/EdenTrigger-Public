@@ -73,7 +73,7 @@ public:
     explicit Barrier(std::size_t count_) : count(count_) {}
 
     /// Blocks until all "count" threads have called Sync()
-    bool Sync(std::stop_token token = {}) {
+    bool Sync(Common::stop_token token = {}) {
         std::unique_lock lk{mutex};
         const std::size_t current_generation = generation;
 
@@ -83,8 +83,10 @@ public:
             condvar.notify_all();
             return true;
         } else {
-            condvar.wait(lk, token,
-                        [this, current_generation] { return current_generation != generation; });
+            // Manual polling loop for stop_token since older libc++ doesn't support it in condition_variable
+            while (!token.stop_requested() && current_generation == generation) {
+                condvar.wait(lk);
+            }
             return !token.stop_requested();
         }
     }

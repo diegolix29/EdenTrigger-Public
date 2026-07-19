@@ -42,7 +42,7 @@ public:
         Pop<PopMode::Wait>(t);
     }
 
-    void PopWait(T& t, const std::stop_token stop_token) noexcept {
+    void PopWait(T& t, const Common::stop_token stop_token) noexcept {
         Pop<PopMode::WaitWithStopToken>(t, stop_token);
     }
 
@@ -52,7 +52,7 @@ public:
         return t;
     }
 
-    T PopWait(const std::stop_token stop_token) noexcept {
+    T PopWait(const Common::stop_token stop_token) noexcept {
         T t{};
         Pop<PopMode::WaitWithStopToken>(t, stop_token);
         return t;
@@ -102,7 +102,7 @@ private:
     }
 
     template <PopMode Mode>
-    bool Pop(T& t, [[maybe_unused]] std::stop_token stop_token = {}) noexcept {
+    bool Pop(T& t, [[maybe_unused]] Common::stop_token stop_token = {}) noexcept {
         const std::size_t read_index = consumer.index.load(std::memory_order::relaxed);
         if constexpr (Mode == PopMode::Try) {
             // Check if the queue is empty.
@@ -117,10 +117,11 @@ private:
             });
         } else if constexpr (Mode == PopMode::WaitWithStopToken) {
             // Wait until the queue is not empty.
+            // Manual polling loop for stop_token since older libc++ doesn't support it in condition_variable
             std::unique_lock lock{consumer.cv_mutex};
-            consumer.cv.wait(lock, stop_token, [this, read_index] {
-                return read_index != producer.index.load(std::memory_order::acquire);
-            });
+            while (!stop_token.stop_requested() && read_index == producer.index.load(std::memory_order::acquire)) {
+                consumer.cv.wait(lock);
+            }
             if (stop_token.stop_requested()) {
                 return false;
             }
@@ -175,7 +176,7 @@ public:
         spsc_queue.PopWait(t);
     }
 
-    void PopWait(T& t, std::stop_token stop_token) {
+    void PopWait(T& t, Common::stop_token stop_token) {
         spsc_queue.PopWait(t, stop_token);
     }
 
@@ -183,7 +184,7 @@ public:
         return spsc_queue.PopWait();
     }
 
-    T PopWait(std::stop_token stop_token) {
+    T PopWait(Common::stop_token stop_token) {
         return spsc_queue.PopWait(stop_token);
     }
 
@@ -217,7 +218,7 @@ public:
         spsc_queue.PopWait(t);
     }
 
-    void PopWait(T& t, std::stop_token stop_token) {
+    void PopWait(T& t, Common::stop_token stop_token) {
         std::scoped_lock lock{read_mutex};
         spsc_queue.PopWait(t, stop_token);
     }
@@ -227,7 +228,7 @@ public:
         return spsc_queue.PopWait();
     }
 
-    T PopWait(std::stop_token stop_token) {
+    T PopWait(Common::stop_token stop_token) {
         std::scoped_lock lock{read_mutex};
         return spsc_queue.PopWait(stop_token);
     }
