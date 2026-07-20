@@ -18,7 +18,7 @@ name: Build
 
 on:
   push:
-    branches: [TTT]
+    branches: [REBASE-FIX]
     tags: ["v*"]
   pull_request:
     branches: [master, main]
