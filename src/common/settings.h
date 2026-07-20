@@ -292,6 +292,9 @@ struct Values {
     SwitchableSetting<CpuCoreConfig, true> cpu_core_config{linkage, CpuCoreConfig::AllCores,
                                                           "cpu_core_config", Category::Cpu};
 
+    // Custom CPU core selection (bitset of cores to use when cpu_core_config is Custom)
+    Setting<u64> cpu_custom_cores{linkage, 0xFFFFFFFFFFFFFFFFULL, "cpu_custom_cores", Category::Cpu};
+
     Setting<bool> cpuopt_page_tables{linkage, true, "cpuopt_page_tables", Category::CpuDebug};
     Setting<bool> cpuopt_block_linking{linkage, true, "cpuopt_block_linking", Category::CpuDebug};
     Setting<bool> cpuopt_return_stack_buffer{linkage, true, "cpuopt_return_stack_buffer",

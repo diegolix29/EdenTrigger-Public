@@ -930,7 +930,7 @@ static void EmitAdd(BlockOfCode& code, EmitContext& ctx, IR::Inst* inst, size_t 
     if (!carry_inst && !overflow_inst && !nzcv_inst && carry_in.IsImmediate() && !carry_in.GetImmediateU1()) {
         if (args[1].IsImmediate() && args[1].FitsInImmediateS32()) {
             Xbyak::Reg const result = ctx.reg_alloc.UseScratchGpr(code, args[0]).changeBit(bitsize);
-            code.lea(result, code.ptr[result + args[1].GetImmediateS32()]);
+            code.lea(result, code.ptr[result + size_t(args[1].GetImmediateS32())]);
             ctx.reg_alloc.DefineValue(code, inst, result);
         } else {
             Xbyak::Reg const result = ctx.reg_alloc.UseScratchGpr(code, args[0]).changeBit(bitsize);
@@ -956,7 +956,7 @@ static void EmitAdd(BlockOfCode& code, EmitContext& ctx, IR::Inst* inst, size_t 
                     code.stc();
                     code.adc(result, op_arg);
                 } else {
-                    code.lea(result, code.ptr[result + op_arg + 1]);
+                    code.lea(result, code.ptr[result + size_t(op_arg) + size_t(1)]);
                 }
             } else {
                 code.add(result, op_arg);

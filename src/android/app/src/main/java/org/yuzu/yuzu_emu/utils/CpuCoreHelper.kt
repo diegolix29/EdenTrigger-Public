@@ -98,16 +98,24 @@ object CpuCoreHelper {
     }
 
     fun getCustomCoreSelection(): Set<Int> {
-        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
-        val coreSet = prefs.getStringSet("cpu_custom_cores", null)
-        return coreSet?.map { it.toInt() }?.toSet() ?: emptySet()
+        // Read from common settings instead of SharedPreferences
+        val customCores = NativeLibrary.getCpuCustomCores(!NativeConfig.isPerGameConfigLoaded())
+        val coreSet = mutableSetOf<Int>()
+        for (i in 0 until 64) {
+            if ((customCores and (1L shl i)) != 0L) {
+                coreSet.add(i)
+            }
+        }
+        return coreSet
     }
 
     fun setCustomCoreSelection(coreIds: Set<Int>) {
-        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
-        prefs.edit()
-            .putStringSet("cpu_custom_cores", coreIds.map { it.toString() }.toSet())
-            .apply()
+        // Convert core IDs to bitset and store in common settings
+        var customCores = 0L
+        for (coreId in coreIds) {
+            customCores = customCores or (1L shl coreId)
+        }
+        NativeLibrary.setCpuCustomCores(customCores)
 
         // Apply the CPU core affinity immediately
         applyCpuCoreAffinity(coreIds)

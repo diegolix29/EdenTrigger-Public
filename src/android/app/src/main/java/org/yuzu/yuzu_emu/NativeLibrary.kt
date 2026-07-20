@@ -216,6 +216,19 @@ object NativeLibrary {
     external fun setCpuCoreAffinity(coreIds: IntArray)
 
     /**
+     * Gets the custom CPU core selection bitset.
+     * @param needGlobal Whether to get the global or per-game setting
+     * @return Bitset of selected cores
+     */
+    external fun getCpuCustomCores(needGlobal: Boolean): Long
+
+    /**
+     * Sets the custom CPU core selection bitset.
+     * @param value Bitset of cores to use
+     */
+    external fun setCpuCustomCores(value: Long)
+
+    /**
      * Returns the current GPU Driver.
      */
     external fun getGpuDriver(): String

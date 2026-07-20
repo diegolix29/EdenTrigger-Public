@@ -605,4 +605,15 @@ void Java_org_yuzu_yuzu_1emu_utils_NativeConfig_setExternalContentDirs(JNIEnv* e
     }
 }
 
+jlong Java_org_yuzu_yuzu_1emu_utils_NativeConfig_getCpuCustomCores(JNIEnv* env, jobject obj,
+                                                                   jboolean needGlobal) {
+    return static_cast<jlong>(Settings::values.cpu_custom_cores.GetValue(
+        static_cast<bool>(needGlobal)));
+}
+
+void Java_org_yuzu_yuzu_1emu_utils_NativeConfig_setCpuCustomCores(JNIEnv* env, jobject obj,
+                                                                   jlong value) {
+    Settings::values.cpu_custom_cores.SetValue(static_cast<u64>(value));
+}
+
 } // extern "C"

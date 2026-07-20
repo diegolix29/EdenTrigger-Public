@@ -204,7 +204,7 @@ cmake_dependent_option(YUZU_USE_BUNDLED_SDL3 "Download bundled SDL3 build" "${MS
 option(ENABLE_CUBEB "Enables the cubeb audio backend" ON)
 
 set(EXT_DEFAULT OFF)
-if (MSVC OR ANDROID)
+if (MSVC OR ANDROID OR (WIN32 AND ARCHITECTURE_arm64))
     set(EXT_DEFAULT ON)
 endif()
 

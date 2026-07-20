@@ -73,6 +73,8 @@ public:
 
     void PreemptSingleCore(Kernel::KernelCore& kernel, bool from_running_environment = true);
 
+    void ApplyCpuCoreAffinity(std::size_t core);
+
     std::size_t CurrentCore() const {
         return current_core.load();
     }

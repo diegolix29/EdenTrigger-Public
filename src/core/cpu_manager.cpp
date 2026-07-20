@@ -8,6 +8,7 @@
 #include "common/scope_exit.h"
 #include "common/thread.h"
 #include "common/settings.h"
+#include "common/settings_enums.h"
 #include "core/core.h"
 #include "core/core_timing.h"
 #include "core/cpu_manager.h"
@@ -168,6 +169,41 @@ void CpuManager::ShutdownThread(Kernel::KernelCore& kernel) {
     UNREACHABLE();
 }
 
+void CpuManager::ApplyCpuCoreAffinity(std::size_t core) {
+    const auto cpu_core_config = Settings::values.cpu_core_config.GetValue();
+    const auto total_cores = std::thread::hardware_concurrency();
+
+    switch (cpu_core_config) {
+    case Settings::CpuCoreConfig::AllCores:
+        // Use all cores - no affinity restriction needed
+        break;
+    case Settings::CpuCoreConfig::EfficiencyOnly:
+        // Pin to efficiency cores (cores 4+ on typical big.LITTLE systems)
+        if (core >= 4 && core < total_cores) {
+            Common::PinCurrentThreadToCore(core);
+        }
+        break;
+    case Settings::CpuCoreConfig::PerformanceOnly:
+        // Pin to performance cores (cores 0-3 on typical big.LITTLE systems)
+        if (core < 4 && core < total_cores) {
+            Common::PinCurrentThreadToCore(core);
+        }
+        break;
+    case Settings::CpuCoreConfig::Custom:
+        // Use custom core selection from settings
+        {
+            const auto custom_cores = Settings::values.cpu_custom_cores.GetValue();
+            if ((custom_cores & (1ULL << core)) != 0) {
+                Common::PinCurrentThreadToCore(core);
+            }
+        }
+        break;
+    default:
+        // Default to all cores - no affinity restriction
+        break;
+    }
+}
+
 void CpuManager::RunThread(std::stop_token token, std::size_t core) {
     /// Initialization
     system.RegisterCoreThread(core);
@@ -175,10 +211,8 @@ void CpuManager::RunThread(std::stop_token token, std::size_t core) {
     Common::SetCurrentThreadName(name.c_str());
     Common::SetCurrentThreadPriority(Common::ThreadPriority::Critical);
 #ifdef __ANDROID__
-    // Aimed specifically for Snapdragon 8 Elite devices
-    // This kills performance on desktop, but boosts perf for UMA devices
-    // like the S8E. Mediatek and Mali likely won't suffer.
-    Common::PinCurrentThreadToPerformanceCore(core);
+    // Apply CPU core affinity based on configuration
+    ApplyCpuCoreAffinity(core);
 #endif
     auto& data = core_data[core];
     data.host_context = Common::Fiber::ThreadToFiber();

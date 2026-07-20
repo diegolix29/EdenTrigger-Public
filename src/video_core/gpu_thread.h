@@ -125,6 +125,9 @@ public:
 
     void TickGPU(bool is_async);
 
+    /// Stops the GPU thread
+    void StopThread();
+
 private:
     /// Pushes a command to be executed by the GPU thread
     u64 PushCommand(CommandData&& command_data, bool block, bool is_async);

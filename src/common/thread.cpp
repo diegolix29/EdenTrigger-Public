@@ -144,4 +144,28 @@ void PinCurrentThreadToPerformanceCore(size_t core_id) {
     }
 }
 
+void PinCurrentThreadToCore(size_t core_id) {
+    // If we set a flag for a CPU that doesn't exist, the thread may not be allowed to
+    // run in ANY processor!
+    auto const total_cores = std::thread::hardware_concurrency();
+    if (core_id < total_cores) {
+#if defined(__ANDROID__)
+        cpu_set_t set;
+        CPU_ZERO(&set);
+        CPU_SET(core_id, &set);
+        sched_setaffinity(pthread_self(), sizeof(set), &set);
+#elif defined(__linux__) || defined(__FreeBSD__)
+        cpu_set_t set;
+        CPU_ZERO(&set);
+        CPU_SET(core_id, &set);
+        pthread_setaffinity_np(pthread_self(), sizeof(set), &set);
+#elif defined(_WIN32)
+        DWORD set = 1UL << core_id;
+        SetThreadAffinityMask(GetCurrentThread(), set);
+#else
+        // No pin functionality implemented
+#endif
+    }
+}
+
 } // namespace Common

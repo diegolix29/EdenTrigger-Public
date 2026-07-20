@@ -171,6 +171,7 @@ struct GPU::Impl {
         std::unique_lock lk{sync_mutex};
         shutting_down.store(true, std::memory_order::relaxed);
         sync_cv.notify_all();
+        gpu_thread.StopThread();
     }
 
     /// Obtain the CPU Context

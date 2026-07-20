@@ -142,7 +142,7 @@ void EmitX64::EmitSignedSaturation(EmitContext& ctx, IR::Inst* inst) {
     const Xbyak::Reg32 overflow = ctx.reg_alloc.ScratchGpr(code).cvt32();
 
     // overflow now contains a value between 0 and mask if it was originally between {negative,positive}_saturated_value.
-    code.lea(overflow, code.ptr[reg_a.cvt64() + negative_saturated_value]);
+    code.lea(overflow, code.ptr[reg_a.cvt64() + static_cast<size_t>(negative_saturated_value)]);
 
     // Put the appropriate saturated value in result
     code.mov(result, reg_a);

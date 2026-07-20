@@ -1,0 +1,512 @@
+# SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Multi-platform build workflow for a Eden (yuzu-derived) fork.
+# Derived from analysis of:
+#   - root CMakeLists.txt (build options, per-platform defaults)
+#   - externals/CMakeLists.txt + externals/cmake-modules/DetectPlatform.cmake (supported OSes)
+#   - docs/Deps.md, docs/Build.md, docs/build/Android.md (package lists)
+#   - .ci/android/build.sh (Android build/signing script)
+#
+# Builds: Linux (Qt6), Windows x86_64 (MSVC, bundled Qt), Windows ARM64
+#         (native windows-11-arm runner, Clang via MSYS2 CLANGARM64 —
+#         matches Eden's actual upstream ARM64 Windows build), macOS arm64
+#         + x86_64 (Qt6 via Homebrew), Android (Gradle), and FreeBSD (via
+#         vmactions/freebsd-vm, treated as a smoke test).
+
+name: Build
+
+on:
+  push:
+    branches: [TTT]
+    tags: ["v*"]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "CMake build type (desktop builds)"
+        required: false
+        default: "Release"
+        type: choice
+        options: [Release, RelWithDebInfo, Debug]
+
+env:
+  BUILD_TYPE: ${{ inputs.build_type || 'Release' }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Linux (Qt6, system deps via apt — mirrors docs/Deps.md "Ubuntu, Debian, Mint")
+  # ─────────────────────────────────────────────────────────────────────────
+  linux:
+    name: Linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf cmake g++ gcc git glslang-tools libglu1-mesa-dev libhidapi-dev \
+            libpulse-dev libtool libudev-dev libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxext-dev libxkbcommon-x11-0 \
+            mesa-common-dev nasm ninja-build qt6-base-private-dev catch2 libfmt-dev \
+            liblz4-dev nlohmann-json3-dev libzstd-dev libssl-dev libavfilter-dev \
+            libavcodec-dev libswscale-dev pkg-config zlib1g-dev libva-dev libvdpau-dev \
+            qt6-tools-dev qt6-charts-dev libvulkan-dev spirv-tools spirv-headers \
+            libusb-1.0-0-dev libxbyak-dev libboost-dev libboost-fiber-dev \
+            libboost-context-dev libopus-dev libasound2t64 \
+            libxcursor-dev libxrandr-dev libxi-dev libxfixes-dev libxss-dev libxtst-dev \
+            vulkan-utility-libraries-dev
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: linux
+
+      - name: Configure
+        run: |
+          # Ubuntu's vulkan-utility-libraries-dev resolves as a system
+          # package but doesn't pull in a VulkanHeadersConfig.cmake, so
+          # CPMUtil sees one Vulkan package as system and one as bundled
+          # and refuses to mix them (see CMakeModules/CPMUtil.cmake
+          # AddDependentPackages). Force both to bundled so they match.
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DVulkanHeaders_FORCE_BUNDLED=ON \
+            -DVulkanUtilityLibraries_FORCE_BUNDLED=ON \
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/eden-linux-x86_64.tar.gz -C build/bin .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-linux-x86_64
+          path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Windows x86_64 (MSVC + bundled Qt/SDL3/FFmpeg — these default ON for MSVC
+  # in CMakeLists.txt, so the only external requirement is the Vulkan SDK)
+  # ─────────────────────────────────────────────────────────────────────────
+  windows:
+    name: Windows (MSVC x86_64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: ./tools/windows/install-vulkan-sdk.ps1
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          Compress-Archive -Path build/bin/* -DestinationPath artifacts/eden-windows-x86_64.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-windows-x86_64
+          path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Windows ARM64 — native, not cross-compiled.
+  #
+  # `windows-11-arm` is a GA GitHub-hosted native arm64 runner (free for
+  # public repos), so there's no need to cross-compile from an x86_64 host.
+  #
+  # This does NOT use MSVC. docs/Deps.md is explicit about why: "On ARM,
+  # only Clang is available through the CLANGARM64 environment, so use that
+  # until a GNU ARM environment is available." That's also what Eden's own
+  # upstream nightly CI actually ships (release assets are named
+  # `Eden-Windows-<commit>-arm64-clang-standard.zip`), so this job mirrors
+  # a build path that's already proven to work rather than the
+  # MSVC-arch:arm64 cross-compile this job used to attempt.
+  #
+  # Bundled deps: root CMakeLists.txt sets YUZU_USE_BUNDLED_FFMPEG,
+  # YUZU_USE_BUNDLED_SDL3, and YUZU_USE_BUNDLED_OPENSSL to ON automatically
+  # under `if (MINGW)`, and CMakeModules/CPMUtil.cmake's AddCIPackage names
+  # the fetched artifact "mingw-arm64" for this exact platform/arch combo —
+  # which lines up with the "arm64-clang" naming in Eden's real releases,
+  # so the prebuilt packages should exist. Qt itself is NOT bundled here
+  # (YUZU_USE_BUNDLED_QT only defaults on for MSVC), so it's pulled from
+  # MSYS2 pacman below, matching docs/Deps.md's documented MSYS2 setup.
+  #
+  # No Vulkan SDK install step is needed — the CLANGARM64 pacman repo
+  # provides vulkan-devel/vulkan-memory-allocator directly, which also
+  # sidesteps a real bug in tools/windows/install-vulkan-sdk.ps1: it picks
+  # x64-vs-arm64 based on the HOST machine's WMI SystemType, which would
+  # misdetect on a cross-compile setup (moot here since this runner is
+  # natively arm64, but worth fixing if that script is ever reused for
+  # cross-compilation).
+  #
+  # Caveat: hendrikmuhs/ccache-action may not ship an arm64 Windows ccache
+  # binary — left out of this job rather than assumed to work. Add it back
+  # once confirmed.
+  # ─────────────────────────────────────────────────────────────────────────
+  windows-arm64:
+    name: Windows (Clang ARM64, native)
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up MSYS2 (CLANGARM64)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            git
+            make
+            autoconf
+            libtool
+            automake-wrapper
+            jq
+            patch
+            zip
+            mingw-w64-clang-aarch64-toolchain
+            mingw-w64-clang-aarch64-cmake
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-qt6-base
+            mingw-w64-clang-aarch64-qt6-charts
+            mingw-w64-clang-aarch64-qt6-tools
+            mingw-w64-clang-aarch64-qt6-translations
+            mingw-w64-clang-aarch64-qt6-svg
+            mingw-w64-clang-aarch64-boost
+            mingw-w64-clang-aarch64-fmt
+            mingw-w64-clang-aarch64-lz4
+            mingw-w64-clang-aarch64-nlohmann-json
+            mingw-w64-clang-aarch64-zlib
+            mingw-w64-clang-aarch64-zstd
+            mingw-w64-clang-aarch64-enet
+            mingw-w64-clang-aarch64-opus
+            mingw-w64-clang-aarch64-libusb
+            mingw-w64-clang-aarch64-unordered_dense
+            mingw-w64-clang-aarch64-vulkan-memory-allocator
+            mingw-w64-clang-aarch64-vulkan-devel
+            mingw-w64-clang-aarch64-glslang
+            mingw-w64-clang-aarch64-python-pip
+
+      - name: Configure
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build --parallel
+
+      - name: Package
+        shell: msys2 {0}
+        run: |
+          mkdir -p artifacts
+          cp -r build/bin eden-windows-arm64
+          zip -r artifacts/eden-windows-arm64.zip eden-windows-arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-windows-arm64
+          path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # macOS arm64 (Qt6 via Homebrew — mirrors docs/Deps.md "macOS")
+  # macos-14 began deprecation Jul 6, 2026 and fully retires Nov 2, 2026 —
+  # bumped to macos-15 now to avoid a repeat of the macos-13 hang above.
+  # ─────────────────────────────────────────────────────────────────────────
+  macos:
+    name: macOS (arm64)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew install autoconf automake boost ffmpeg fmt glslang hidapi libtool \
+            libusb llvm lz4 ninja nlohmann-json openssl pkg-config qt@6 sdl3 speexdsp \
+            zlib zstd cmake Catch2 molten-vk vulkan-loader spirv-tools \
+            vulkan-utility-libraries
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: macos-arm64
+
+      - name: Configure
+        run: |
+          export PATH="/opt/homebrew/opt/qt@6/bin:$PATH"
+
+          # Apple Clang's shipped libc++ never implemented std::jthread /
+          # std::stop_token, even experimentally (Apple's fork of libc++
+          # omits them entirely, unlike upstream LLVM). This codebase uses
+          # std::jthread/std::stop_token directly in several places
+          # (src/web_service, src/video_core, src/core/hle/kernel, etc.),
+          # so it can't build with the system compiler. Homebrew's LLVM
+          # ships a real, current libc++ that supports them under
+          # -fexperimental-library (already set by CMakeLists.txt for
+          # Clang), so build with that toolchain instead.
+          LLVM_PREFIX="$(brew --prefix llvm)"
+          SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+
+          export CC="${LLVM_PREFIX}/bin/clang"
+          export CXX="${LLVM_PREFIX}/bin/clang++"
+
+          COMMON_FLAGS="-isysroot ${SDKROOT}"
+          LINK_FLAGS="-L${LLVM_PREFIX}/lib/c++ -Wl,-rpath,${LLVM_PREFIX}/lib/c++ ${COMMON_FLAGS}"
+
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER="${CC}" \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OSX_SYSROOT="${SDKROOT}" \
+            -DCMAKE_C_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_MODULE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@6" \
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          ditto build/bin artifacts/eden-macos-arm64
+          (cd artifacts && zip -r eden-macos-arm64.zip eden-macos-arm64)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-macos-arm64
+          path: artifacts/*.zip
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # macOS x86_64 (Qt6 via Homebrew — same job as arm64 above, but on an
+  # Intel runner. Only real difference is the Homebrew prefix: Intel
+  # Homebrew installs to /usr/local, not /opt/homebrew.
+  # macos-13 was retired by GitHub on Dec 4, 2025 (jobs using it just hang
+  # waiting for a runner that no longer exists). macos-15-intel is the
+  # replacement Intel label, good until GitHub drops x86_64 support
+  # entirely (currently slated for ~Aug 2027 per GitHub's own changelog).
+  # ─────────────────────────────────────────────────────────────────────────
+  macos-x86_64:
+    name: macOS (x86_64)
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          brew install autoconf automake boost ffmpeg fmt glslang hidapi libtool \
+            libusb llvm lz4 ninja nlohmann-json openssl pkg-config qt@6 sdl3 speexdsp \
+            zlib zstd cmake Catch2 molten-vk vulkan-loader spirv-tools \
+            vulkan-utility-libraries
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: macos-x86_64
+
+      - name: Configure
+        run: |
+          export PATH="/usr/local/opt/qt@6/bin:$PATH"
+
+          # Same std::jthread/std::stop_token gap as the arm64 job above —
+          # Apple Clang's libc++ doesn't implement them, so use Homebrew's
+          # LLVM/libc++ instead of the system compiler.
+          LLVM_PREFIX="$(brew --prefix llvm)"
+          SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
+
+          export CC="${LLVM_PREFIX}/bin/clang"
+          export CXX="${LLVM_PREFIX}/bin/clang++"
+
+          COMMON_FLAGS="-isysroot ${SDKROOT}"
+          LINK_FLAGS="-L${LLVM_PREFIX}/lib/c++ -Wl,-rpath,${LLVM_PREFIX}/lib/c++ ${COMMON_FLAGS}"
+
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER="${CC}" \
+            -DCMAKE_CXX_COMPILER="${CXX}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OSX_SYSROOT="${SDKROOT}" \
+            -DCMAKE_C_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_CXX_FLAGS="${COMMON_FLAGS}" \
+            -DCMAKE_EXE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_SHARED_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_MODULE_LINKER_FLAGS="${LINK_FLAGS}" \
+            -DCMAKE_PREFIX_PATH="/usr/local/opt/qt@6" \
+            -DYUZU_TESTS=OFF
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          ditto build/bin artifacts/eden-macos-x86_64
+          (cd artifacts && zip -r eden-macos-x86_64.zip eden-macos-x86_64)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-macos-x86_64
+          path: artifacts/*.zip
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Android (Gradle, using the repo's own .ci/android/build.sh)
+  # Signing is OPTIONAL: if the ANDROID_KEYSTORE_B64 secret isn't set, the
+  # script/gradle falls back to the repo's debug keystore (see build.gradle.kts).
+  # ─────────────────────────────────────────────────────────────────────────
+  android:
+    name: Android
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+          sdkmanager --install "ndk;28.2.13676358" "cmake;3.31.6"
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: android
+
+      - name: Build (standard flavor)
+        env:
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}/ndk/28.2.13676358
+          CCACHE: "true"
+          # Optional signing secrets — see setup notes below.
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          chmod +x .ci/android/build.sh
+          .ci/android/build.sh -t standard -b "${BUILD_TYPE}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-android
+          path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # FreeBSD — GitHub-hosted runners don't support FreeBSD natively, so this
+  # runs inside a QEMU VM via vmactions/freebsd-vm. It's slow (no real
+  # caching inside the VM) and best treated as a smoke test rather than a
+  # release-quality artifact producer.
+  #
+  # Dependency list is copied straight from docs/Deps.md's documented
+  # FreeBSD package set, and PLATFORM_FREEBSD is a genuine first-class
+  # target in externals/cmake-modules/DetectPlatform.cmake (own linker
+  # flags, Qt DBus handling, etc.) — this isn't a guess.
+  #
+  # No openssl port is installed and -DYUZU_USE_BUNDLED_OPENSSL is left at
+  # its FreeBSD default (OFF) — see the comment on the `run` step below for
+  # why forcing it ON actually breaks the build here.
+  # ─────────────────────────────────────────────────────────────────────────
+  freebsd:
+    name: FreeBSD
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          # qt6-charts is left unprefixed (like quazip-qt6 and vulkan-headers
+          # below) rather than `devel/qt6-charts` — its real FreeBSD category
+          # is x11-toolkits, not devel (docs/Deps.md has this wrong, which is
+          # where the original prefix came from). pkg resolves unprefixed
+          # names by matching against the whole repo, so this is also more
+          # resilient if the category moves again.
+          prepare: |
+            pkg install -y devel/cmake sdl3 devel/boost-libs devel/catch2 devel/libfmt \
+              devel/nlohmann-json devel/ninja devel/nasm devel/autoconf devel/pkgconf \
+              devel/qt6-base qt6-charts devel/simpleini net/enet \
+              multimedia/ffnvcodec-headers multimedia/ffmpeg audio/opus \
+              archivers/liblz4 lang/gcc12 graphics/glslang \
+              graphics/vulkan-utility-libraries graphics/spirv-tools \
+              www/cpp-httplib devel/unordered-dense vulkan-headers quazip-qt6
+          # NOTE: deliberately NOT setting -DYUZU_USE_BUNDLED_OPENSSL=ON here
+          # despite docs/Caveats.md's FreeBSD note recommending it. That flag
+          # makes CMakeLists.txt fetch a prebuilt CI OpenSSL binary via
+          # AddCIPackage, which only knows MSVC/MINGW/Android/Linux/iOS/Apple
+          # platform names — FreeBSD isn't one of them, so it hard-fails with
+          # "[CPMUtil] openssl: Unsupported platform for CI package". Leaving
+          # the flag unset (its FreeBSD default is OFF) takes the other
+          # branch instead, which builds OpenSSL from source via CPM — that's
+          # the actual fix for the outdated ports OpenSSL Caveats.md is
+          # warning about, and matches docs/Deps.md's FreeBSD package list,
+          # which doesn't include an openssl port at all.
+          run: |
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DYUZU_TESTS=OFF
+            cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/eden-freebsd-x86_64.tar.gz -C build/bin .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-freebsd-x86_64
+          path: artifacts/*
