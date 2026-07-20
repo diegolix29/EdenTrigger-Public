@@ -738,7 +738,7 @@ void A32EmitX64::EmitA32BXWritePC(A32EmitContext& ctx, IR::Inst* inst) {
 
         code.mov(mask, new_pc);
         code.and_(mask, 1);
-        code.lea(new_upper, ptr[mask.cvt64() + upper_without_t]);
+        code.lea(new_upper, ptr[mask.cvt64() + static_cast<size_t>(upper_without_t)]);
         code.lea(mask, ptr[mask.cvt64() + mask.cvt64() * 1 - 4]);  // mask = pc & 1 ? 0xFFFFFFFE : 0xFFFFFFFC
         code.and_(new_pc, mask);
         code.mov(MJitStateReg(A32::Reg::PC), new_pc);

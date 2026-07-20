@@ -454,9 +454,9 @@ jobs:
   # target in externals/cmake-modules/DetectPlatform.cmake (own linker
   # flags, Qt DBus handling, etc.) — this isn't a guess.
   #
-  # -DYUZU_USE_BUNDLED_OPENSSL=ON is required per docs/Caveats.md: the
-  # `openssl` port on FreeBSD lags behind what this codebase needs, so the
-  # bundled/vendored copy is recommended instead of the ports one.
+  # No openssl port is installed and -DYUZU_USE_BUNDLED_OPENSSL is left at
+  # its FreeBSD default (OFF) — see the comment on the `run` step below for
+  # why forcing it ON actually breaks the build here.
   # ─────────────────────────────────────────────────────────────────────────
   freebsd:
     name: FreeBSD
@@ -484,10 +484,20 @@ jobs:
               archivers/liblz4 lang/gcc12 graphics/glslang \
               graphics/vulkan-utility-libraries graphics/spirv-tools \
               www/cpp-httplib devel/unordered-dense vulkan-headers quazip-qt6
+          # NOTE: deliberately NOT setting -DYUZU_USE_BUNDLED_OPENSSL=ON here
+          # despite docs/Caveats.md's FreeBSD note recommending it. That flag
+          # makes CMakeLists.txt fetch a prebuilt CI OpenSSL binary via
+          # AddCIPackage, which only knows MSVC/MINGW/Android/Linux/iOS/Apple
+          # platform names — FreeBSD isn't one of them, so it hard-fails with
+          # "[CPMUtil] openssl: Unsupported platform for CI package". Leaving
+          # the flag unset (its FreeBSD default is OFF) takes the other
+          # branch instead, which builds OpenSSL from source via CPM — that's
+          # the actual fix for the outdated ports OpenSSL Caveats.md is
+          # warning about, and matches docs/Deps.md's FreeBSD package list,
+          # which doesn't include an openssl port at all.
           run: |
             cmake -S . -B build -G Ninja \
               -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-              -DYUZU_USE_BUNDLED_OPENSSL=ON \
               -DYUZU_TESTS=OFF
             cmake --build build --parallel
 
