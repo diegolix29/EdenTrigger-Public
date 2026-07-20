@@ -1,3 +1,99 @@
+# Eden Experimental Fork
+
+<img width="1024" height="1024" alt="eden trigger" src="https://github.com/user-attachments/assets/ecb1d65d-f0d2-457f-887f-84abf4b1b5e8" />
+
+
+## Overview
+
+This is an **experimental fork** of the Eden Emulator Project, designed to test and implement various features and optimizations. This fork focuses on enhancing user experience through additional performance monitoring and memory management features.
+
+## 🚀 New Features
+
+### Memory Management
+- **Memory Flush Option**: Added a toggle to enable/disable memory flush functionality during gameplay
+  - **Location**: Settings → System → App Settings → Enable Memory Flush
+  - **Purpose**: Clear app memory and caches for better performance
+  - **Usage**: When enabled, shows a memory flush button during gameplay
+
+### Performance Monitoring
+- **Phone Temperature Display**: Added real-time phone temperature monitoring
+  - **Location**: Settings → Performance Stats → Show Phone Temperature
+  - **Purpose**: Monitor device thermal state during emulation
+  - **Display**: Shows current phone temperature in the performance overlay
+
+## 📱 Installation
+
+### Installation Steps
+1. Download the appropriate APK variant for your device
+2. Enable "Install from unknown sources" in Android settings
+3. Install the APK
+4. Launch the app and follow the setup wizard
+
+## ⚙️ Configuration
+
+### Memory Flush Setup
+1. Open **Settings**
+2. Navigate to **System** section
+3. Find **App Settings** category
+4. Toggle **"Enable Memory Flush"**
+5. The memory flush button will appear during gameplay
+
+### Temperature Monitoring Setup
+1. Open **Settings**
+2. Navigate to **Performance Stats** section
+3. Toggle **"Show Phone Temperature"**
+4. Temperature will display in the performance overlay during gameplay
+
+## 🧪 Experimental Features
+
+This fork includes experimental features that may:
+- Enhance performance on certain devices
+- Provide additional system monitoring
+- Offer new user interaction methods
+
+**Note**: These features are experimental and may not be stable in all configurations.
+
+## 🐛 Bug Reports
+
+Since this is an experimental fork, please report issues with:
+1. Device model and Android version
+2. APK variant used
+3. Steps to reproduce the issue
+4. Log files if available
+
+## ⚠️ Disclaimer
+
+This is an **unofficial experimental fork** of Eden Emulator. It is not affiliated with the official Eden Emulator Project. Use at your own risk.
+
+## 📄 License
+
+This project maintains the same license as the original Eden Emulator Project (GPL-3.0-or-later).
+
+## 🔗 Links
+
+- **Original Eden Project**: https://eden-emu.dev
+- **Source Code**: https://git.eden-emu.dev/eden-emu
+- **Discord**: https://discord.gg/HstXbPch7X
+
+
+**Thank you for trying this experimental fork!**
+
+## ⚠️ Disclaimer
+
+This is an **unofficial experimental fork** of the Eden Emulator Project.
+
+- I am **not affiliated with, associated with, or endorsed by** the Eden Emulator development team
+- This fork is an **independent experiment**
+- Any changes, builds, or releases provided here **do not represent the official Eden project**
+- I will only update commits and test QoL changes.
+  
+Use at your own risk.
+
+
+<img width="1024" height="1024" alt="eden trigger icon" src="https://github.com/user-attachments/assets/c8820d64-a07a-4985-988c-7dfb63dd97e7" />
+
+
+
 <!--
 # SPDX-FileCopyrightText: Copyright 2025 Eden Emulator Project
 # SPDX-License-Identifier: GPL-3.0-or-later

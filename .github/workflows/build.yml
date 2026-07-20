@@ -9,8 +9,10 @@
 #   - .ci/android/build.sh (Android build/signing script)
 #
 # Builds: Linux (Qt6), Windows x86_64 (MSVC, bundled Qt), Windows ARM64
-#         (MSVC cross-compile, experimental), macOS arm64 + x86_64 (Qt6 via
-#         Homebrew), Android (Gradle), and an optional/experimental FreeBSD job.
+#         (native windows-11-arm runner, Clang via MSYS2 CLANGARM64 —
+#         matches Eden's actual upstream ARM64 Windows build), macOS arm64
+#         + x86_64 (Qt6 via Homebrew), Android (Gradle), and FreeBSD (via
+#         vmactions/freebsd-vm, treated as a smoke test).
 
 name: Build
 
@@ -138,64 +140,102 @@ jobs:
           path: artifacts/*
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Windows ARM64 (EXPERIMENTAL — cross-compiled with MSVC on an x86_64 host
-  # runner via `arch: arm64`; there is no native arm64-hosted GitHub runner
-  # in general availability at time of writing).
+  # Windows ARM64 — native, not cross-compiled.
   #
-  # Two things are unverified against this repo and likely to bite:
-  #   1. Bundled/vendored deps. The x86_64 job gets Qt/SDL3/FFmpeg "for free"
-  #      because MSVC_STATIC_BUNDLED (or equivalent) defaults ON and pulls
-  #      prebuilt binaries. Those prebuilts are commonly published for
-  #      win64 only in yuzu-derived externals systems — if there's no arm64
-  #      variant, CMake configure or link will fail. Check externals/CMakeLists.txt
-  #      / DetectPlatform.cmake for an arm64 branch before relying on this.
-  #   2. Vulkan SDK. install-vulkan-sdk.ps1 as used by the x86_64 job may
-  #      not accept/support an arm64 target — LunarG's arm64 Vulkan SDK
-  #      support has been inconsistent release to release. Confirm the
-  #      script supports selecting an architecture, or install the arm64
-  #      SDK package manually here if not.
+  # `windows-11-arm` is a GA GitHub-hosted native arm64 runner (free for
+  # public repos), so there's no need to cross-compile from an x86_64 host.
   #
-  # Treat this job like the FreeBSD one below: flip `if: false` off once
-  # you've confirmed (1) and (2) hold for this codebase.
+  # This does NOT use MSVC. docs/Deps.md is explicit about why: "On ARM,
+  # only Clang is available through the CLANGARM64 environment, so use that
+  # until a GNU ARM environment is available." That's also what Eden's own
+  # upstream nightly CI actually ships (release assets are named
+  # `Eden-Windows-<commit>-arm64-clang-standard.zip`), so this job mirrors
+  # a build path that's already proven to work rather than the
+  # MSVC-arch:arm64 cross-compile this job used to attempt.
+  #
+  # Bundled deps: root CMakeLists.txt sets YUZU_USE_BUNDLED_FFMPEG,
+  # YUZU_USE_BUNDLED_SDL3, and YUZU_USE_BUNDLED_OPENSSL to ON automatically
+  # under `if (MINGW)`, and CMakeModules/CPMUtil.cmake's AddCIPackage names
+  # the fetched artifact "mingw-arm64" for this exact platform/arch combo —
+  # which lines up with the "arm64-clang" naming in Eden's real releases,
+  # so the prebuilt packages should exist. Qt itself is NOT bundled here
+  # (YUZU_USE_BUNDLED_QT only defaults on for MSVC), so it's pulled from
+  # MSYS2 pacman below, matching docs/Deps.md's documented MSYS2 setup.
+  #
+  # No Vulkan SDK install step is needed — the CLANGARM64 pacman repo
+  # provides vulkan-devel/vulkan-memory-allocator directly, which also
+  # sidesteps a real bug in tools/windows/install-vulkan-sdk.ps1: it picks
+  # x64-vs-arm64 based on the HOST machine's WMI SystemType, which would
+  # misdetect on a cross-compile setup (moot here since this runner is
+  # natively arm64, but worth fixing if that script is ever reused for
+  # cross-compilation).
+  #
+  # Caveat: hendrikmuhs/ccache-action may not ship an arm64 Windows ccache
+  # binary — left out of this job rather than assumed to work. Add it back
+  # once confirmed.
   # ─────────────────────────────────────────────────────────────────────────
   windows-arm64:
-    name: Windows (MSVC ARM64, experimental)
-    runs-on: windows-latest
-    if: false # flip to `true` once bundled-dep / Vulkan SDK arm64 support is confirmed
+    name: Windows (Clang ARM64, native)
+    runs-on: windows-11-arm
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: seanmiddleditch/gha-setup-ninja@master
-
-      - name: Install Vulkan SDK
-        shell: pwsh
-        run: ./tools/windows/install-vulkan-sdk.ps1
-        # NOTE: verify this script actually installs/links arm64 Vulkan
-        # libs; it may need an -Arch/-Target argument added upstream.
-
-      - name: Set up MSVC environment
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Set up MSYS2 (CLANGARM64)
+        uses: msys2/setup-msys2@v2
         with:
-          arch: arm64
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            git
+            make
+            autoconf
+            libtool
+            automake-wrapper
+            jq
+            patch
+            zip
+            mingw-w64-clang-aarch64-toolchain
+            mingw-w64-clang-aarch64-cmake
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-qt6-base
+            mingw-w64-clang-aarch64-qt6-charts
+            mingw-w64-clang-aarch64-qt6-tools
+            mingw-w64-clang-aarch64-qt6-translations
+            mingw-w64-clang-aarch64-qt6-svg
+            mingw-w64-clang-aarch64-boost
+            mingw-w64-clang-aarch64-fmt
+            mingw-w64-clang-aarch64-lz4
+            mingw-w64-clang-aarch64-nlohmann-json
+            mingw-w64-clang-aarch64-zlib
+            mingw-w64-clang-aarch64-zstd
+            mingw-w64-clang-aarch64-enet
+            mingw-w64-clang-aarch64-opus
+            mingw-w64-clang-aarch64-libusb
+            mingw-w64-clang-aarch64-unordered_dense
+            mingw-w64-clang-aarch64-vulkan-memory-allocator
+            mingw-w64-clang-aarch64-vulkan-devel
+            mingw-w64-clang-aarch64-glslang
+            mingw-w64-clang-aarch64-python-pip
 
       - name: Configure
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          cmake -S . -B build -G Ninja `
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
-            -DCMAKE_SYSTEM_PROCESSOR=ARM64 `
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DYUZU_TESTS=OFF
 
       - name: Build
+        shell: msys2 {0}
         run: cmake --build build --parallel
 
       - name: Package
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          New-Item -ItemType Directory -Force -Path artifacts
-          Compress-Archive -Path build/bin/* -DestinationPath artifacts/eden-windows-arm64.zip
+          mkdir -p artifacts
+          cp -r build/bin eden-windows-arm64
+          zip -r artifacts/eden-windows-arm64.zip eden-windows-arm64
 
       - uses: actions/upload-artifact@v4
         with:
@@ -204,10 +244,12 @@ jobs:
 
   # ─────────────────────────────────────────────────────────────────────────
   # macOS arm64 (Qt6 via Homebrew — mirrors docs/Deps.md "macOS")
+  # macos-14 began deprecation Jul 6, 2026 and fully retires Nov 2, 2026 —
+  # bumped to macos-15 now to avoid a repeat of the macos-13 hang above.
   # ─────────────────────────────────────────────────────────────────────────
   macos:
     name: macOS (arm64)
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -280,13 +322,14 @@ jobs:
   # macOS x86_64 (Qt6 via Homebrew — same job as arm64 above, but on an
   # Intel runner. Only real difference is the Homebrew prefix: Intel
   # Homebrew installs to /usr/local, not /opt/homebrew.
-  # macos-13 is GitHub's last Intel-hosted macOS image; if it's deprecated
-  # by the time you read this, swap in whatever Intel label replaces it,
-  # or drop this job if you no longer need Intel Mac coverage.
+  # macos-13 was retired by GitHub on Dec 4, 2025 (jobs using it just hang
+  # waiting for a runner that no longer exists). macos-15-intel is the
+  # replacement Intel label, good until GitHub drops x86_64 support
+  # entirely (currently slated for ~Aug 2027 per GitHub's own changelog).
   # ─────────────────────────────────────────────────────────────────────────
   macos-x86_64:
     name: macOS (x86_64)
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
         with:
@@ -401,15 +444,23 @@ jobs:
           path: artifacts/*
 
   # ─────────────────────────────────────────────────────────────────────────
-  # FreeBSD (EXPERIMENTAL) — GitHub-hosted runners don't support FreeBSD
-  # natively, so this runs inside a QEMU VM via vmactions/freebsd-vm.
-  # It's slow (no real caching) and best treated as a smoke test.
-  # Remove this job if you don't need FreeBSD coverage.
+  # FreeBSD — GitHub-hosted runners don't support FreeBSD natively, so this
+  # runs inside a QEMU VM via vmactions/freebsd-vm. It's slow (no real
+  # caching inside the VM) and best treated as a smoke test rather than a
+  # release-quality artifact producer.
+  #
+  # Dependency list is copied straight from docs/Deps.md's documented
+  # FreeBSD package set, and PLATFORM_FREEBSD is a genuine first-class
+  # target in externals/cmake-modules/DetectPlatform.cmake (own linker
+  # flags, Qt DBus handling, etc.) — this isn't a guess.
+  #
+  # -DYUZU_USE_BUNDLED_OPENSSL=ON is required per docs/Caveats.md: the
+  # `openssl` port on FreeBSD lags behind what this codebase needs, so the
+  # bundled/vendored copy is recommended instead of the ports one.
   # ─────────────────────────────────────────────────────────────────────────
   freebsd:
-    name: FreeBSD (experimental)
+    name: FreeBSD
     runs-on: ubuntu-24.04
-    if: false # flip to `true` (or drop this line) to enable — see notes below
     steps:
       - uses: actions/checkout@v4
         with:
@@ -419,14 +470,33 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           usesh: true
+          # qt6-charts is left unprefixed (like quazip-qt6 and vulkan-headers
+          # below) rather than `devel/qt6-charts` — its real FreeBSD category
+          # is x11-toolkits, not devel (docs/Deps.md has this wrong, which is
+          # where the original prefix came from). pkg resolves unprefixed
+          # names by matching against the whole repo, so this is also more
+          # resilient if the category moves again.
           prepare: |
             pkg install -y devel/cmake sdl3 devel/boost-libs devel/catch2 devel/libfmt \
               devel/nlohmann-json devel/ninja devel/nasm devel/autoconf devel/pkgconf \
-              devel/qt6-base devel/qt6-charts devel/simpleini net/enet \
+              devel/qt6-base qt6-charts devel/simpleini net/enet \
               multimedia/ffnvcodec-headers multimedia/ffmpeg audio/opus \
               archivers/liblz4 lang/gcc12 graphics/glslang \
               graphics/vulkan-utility-libraries graphics/spirv-tools \
               www/cpp-httplib devel/unordered-dense vulkan-headers quazip-qt6
           run: |
-            cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DYUZU_TESTS=OFF
+            cmake -S . -B build -G Ninja \
+              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+              -DYUZU_USE_BUNDLED_OPENSSL=ON \
+              -DYUZU_TESTS=OFF
             cmake --build build --parallel
+
+      - name: Package
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/eden-freebsd-x86_64.tar.gz -C build/bin .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eden-freebsd-x86_64
+          path: artifacts/*
