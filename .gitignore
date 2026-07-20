@@ -24,6 +24,7 @@ dist/english_plurals/generated_en.ts
 *.swp
 .idea/
 .vs/
+out/
 .vscode/
 .cache/
 profile.json.gz
