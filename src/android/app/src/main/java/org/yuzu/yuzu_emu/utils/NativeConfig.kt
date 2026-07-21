@@ -212,4 +212,12 @@ object NativeConfig {
     external fun getExternalContentDirs(): Array<String>
     @Synchronized
     external fun setExternalContentDirs(dirs: Array<String>)
+
+    /**
+     * CPU custom core selection
+     */
+    @Synchronized
+    external fun getCpuCustomCores(needGlobal: Boolean): Long
+    @Synchronized
+    external fun setCpuCustomCores(value: Long)
 }

@@ -8,6 +8,8 @@
 
 #include <memory>
 #include <vector>
+#include <QCheckBox>
+#include <QList>
 #include <QWidget>
 #include "qt_common/config/shared_translation.h"
 #include "yuzu/configuration/configuration_shared.h"
@@ -43,6 +45,8 @@ private:
     void RetranslateUI();
 
     void UpdateGroup();
+    void UpdateCustomCoreUI();
+    void SetupCustomCoreCheckboxes();
 
     void Setup(const ConfigurationShared::Builder& builder);
 
@@ -56,4 +60,5 @@ private:
     QComboBox* accuracy_combobox;
     QComboBox* backend_combobox;
     QComboBox* core_config_combobox;
+    QList<QCheckBox*> custom_core_checkboxes;
 };

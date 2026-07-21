@@ -127,6 +127,46 @@
       </widget>
      </item>
      <item>
+      <widget class="QGroupBox" name="custom_core_group">
+       <property name="title">
+        <string>Custom Core Selection</string>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+       <layout class="QVBoxLayout">
+        <item>
+         <widget class="QLabel" name="label_custom_core_description">
+          <property name="text">
+           <string>Select individual CPU cores to use for emulation.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="custom_core_widget" native="true">
+          <layout class="QVBoxLayout" name="custom_core_layout">
+           <property name="leftMargin">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="rightMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
       <widget class="QGroupBox" name="unsafe_group">
        <property name="title">
         <string>Unsafe CPU Optimization Settings</string>
