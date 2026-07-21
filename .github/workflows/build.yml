@@ -510,3 +510,32 @@ jobs:
         with:
           name: eden-freebsd-x86_64
           path: artifacts/*
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Release — creates a GitHub release with all build artifacts when a tag
+  # is pushed. Only runs on tag pushes (v*), not on branch pushes or PRs.
+  # ─────────────────────────────────────────────────────────────────────────
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    needs: [linux, windows, windows-arm64, macos, macos-x86_64, android, freebsd]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
