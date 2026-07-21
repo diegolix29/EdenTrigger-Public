@@ -42,14 +42,16 @@ Result NPadData::SetSupportedNpadIdType(std::span<const Core::HID::NpadIdType> l
     }
 
     supported_npad_id_types_count = list.size();
-    std::memcpy(supported_npad_id_types.data(), list.data(), list.size() * sizeof(Core::HID::NpadIdType));
+    std::memcpy(supported_npad_id_types.data(), list.data(),
+                list.size() * sizeof(Core::HID::NpadIdType));
     return ResultSuccess;
 }
 
 std::size_t NPadData::GetSupportedNpadIdType(std::span<Core::HID::NpadIdType> out_list) const {
     std::size_t out_size = (std::min)(supported_npad_id_types_count, out_list.size());
 
-    std::memcpy(out_list.data(), supported_npad_id_types.data(), out_size * sizeof(Core::HID::NpadIdType));
+    std::memcpy(out_list.data(), supported_npad_id_types.data(),
+                out_size * sizeof(Core::HID::NpadIdType));
     return out_size;
 }
 
