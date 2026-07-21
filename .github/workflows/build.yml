@@ -18,7 +18,7 @@ name: Build
 
 on:
   push:
-    branches: [TTT]
+    branches: [mastertrigger]
     tags: ["v*"]
   pull_request:
     branches: [master, main]
