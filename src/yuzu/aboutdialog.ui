@@ -153,6 +153,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
     </layout>
    </item>
    <item>
+    <widget class="QPushButton" name="buttonCheckForUpdates">
+     <property name="text">
+      <string>Check for Updates</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>

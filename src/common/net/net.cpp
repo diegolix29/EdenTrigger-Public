@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2026 Eden Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <algorithm>
+#include <array>
+#include <cctype>
 #include <optional>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -36,12 +39,10 @@ std::vector<Asset> Release::GetPlatformAssets() const {
 
     std::vector<Asset> found_assets;
 
-    // FIXME: This is mildly inefficient.
-    // Finds assets based on a hierarchy of regex search strings.
     const auto find_asset = [&found_assets, ref, this](const std::string& name,
                                                        const std::vector<std::string>& suffixes) {
-        for (const std::string& asset : assets) {
-            for (const auto& suffix : suffixes) {
+        for (const auto& suffix : suffixes) {
+            for (const std::string& asset : assets) {
                 if (asset.ends_with(suffix)) {
                     const std::string_view asset_sv = asset;
                     const size_t pos = asset_sv.find_last_of('/');
@@ -63,33 +64,107 @@ std::vector<Asset> Release::GetPlatformAssets() const {
 #ifdef _WIN32
 #ifdef ARCHITECTURE_x86_64
 #ifdef _MSC_VER
-    find_asset("Standard", {"amd64-msvc-standard.exe", "amd64-msvc-standard.zip"});
-#else // _MSC_VER
-    find_asset("Standard", {BUILD_ID "-gcc-standard.exe", BUILD_ID "-gcc-standard.zip"});
-    find_asset("PGO", {BUILD_ID "-clang-pgo.exe", BUILD_ID "-clang-pgo.zip"});
+    find_asset("Standard", {"win64-msvc-standard.zip", "amd64-msvc-standard.zip", "windows-x64.zip",
+                            "windows-x86_64.zip"});
+#else  // _MSC_VER
+    find_asset("Standard", {BUILD_ID "-gcc-standard.zip", BUILD_ID "-clang-pgo.zip",
+                            "windows-x64.zip", "windows-x86_64.zip"});
 #endif // _MSC_VER
 #elif defined(ARCHITECTURE_arm64)
-    find_asset("Standard", {"arm64-clang-standard.exe", "arm64-clang-standard.zip"});
-    find_asset("PGO", {"arm64-clang-pgo.exe", "arm64-clang-pgo.zip"});
+    find_asset("Standard", {"arm64-clang-standard.zip", "windows-arm64.zip"});
+    find_asset("PGO", {"arm64-clang-pgo.zip"});
 #endif // ARCHITECTURE_arm64
 #elif defined(__APPLE__)
 #ifdef ARCHITECTURE_arm64
-    find_asset("Standard", {"standard.dmg", "standard.tar.gz", ".dmg", ".tar.gz"});
+    find_asset("Standard",
+               {"macos-arm64.zip", "standard.dmg", "standard.tar.gz", "macos-arm64.dmg"});
+    find_asset("PGO", {"pgo.dmg", "pgo.tar.gz"});
+#elif defined(ARCHITECTURE_x86_64)
+    find_asset("Standard",
+               {"macos-x86_64.zip", "standard.dmg", "standard.tar.gz", "macos-x86_64.dmg"});
     find_asset("PGO", {"pgo.dmg", "pgo.tar.gz"});
 #endif // ARCHITECTURE_arm64
 #elif defined(__ANDROID__)
 #ifdef ARCHITECTURE_x86_64
-    find_asset("Standard", {"chromeos.apk"});
+    // x86_64 Android builds ship under the "chromeOS" flavor.
+    find_asset("Standard", {"chromeOS-release.apk", "chromeos.apk", "android-x86_64.apk"});
 #elif defined(ARCHITECTURE_arm64)
 #ifdef YUZU_LEGACY
-    find_asset("Standard", {"legacy.apk"});
+    find_asset("Standard", {"legacy-release.apk", "legacy.apk"});
 #elif defined(GENSHIN_SPOOF)
-    find_asset("Standard", {"optimized.apk"});
+    find_asset("Standard", {"genshinSpoof-release.apk", "optimized.apk"});
 #else
-    find_asset("Standard", {"standard.apk"});
+    find_asset("Standard", {"mainline-release.apk", "standard.apk", "android-arm64.apk"});
 #endif // GENSHIN_SPOOF
 #endif // ARCHITECTURE_arm64
-#endif // __APPLE__
+#elif defined(__FreeBSD__)
+#ifdef ARCHITECTURE_x86_64
+    find_asset("Standard", {"freebsd-x86_64.tar.gz"});
+#elif defined(ARCHITECTURE_arm64)
+    find_asset("Standard", {"freebsd-arm64.tar.gz"});
+#endif // ARCHITECTURE_arm64
+#elif defined(__linux__)
+#ifdef ARCHITECTURE_x86_64
+    find_asset("Standard", {"linux-x86_64.tar.gz"});
+#elif defined(ARCHITECTURE_arm64)
+    find_asset("Standard", {"linux-arm64.tar.gz"});
+#endif // ARCHITECTURE_arm64
+#endif // __linux__
+
+    if (found_assets.empty() && !assets.empty()) {
+#if defined(_WIN32)
+        constexpr std::string_view kThisTag = "windows";
+#elif defined(__ANDROID__)
+        constexpr std::string_view kThisTag = "android";
+#elif defined(__APPLE__)
+        constexpr std::string_view kThisTag = "macos";
+#elif defined(__FreeBSD__)
+        constexpr std::string_view kThisTag = "freebsd";
+#elif defined(__linux__)
+        constexpr std::string_view kThisTag = "linux";
+#else
+        constexpr std::string_view kThisTag = "";
+#endif
+        static constexpr std::array<std::string_view, 5> kAllTags = {"windows", "macos", "linux",
+                                                                     "freebsd", "android"};
+
+        for (const std::string& asset : assets) {
+            const std::string_view asset_sv = asset;
+            const size_t pos = asset_sv.find_last_of('/');
+            const std::string_view filename =
+                (pos != std::string_view::npos) ? asset_sv.substr(pos + 1) : asset_sv;
+            std::string filename_str{filename};
+            std::string lower = filename_str;
+            std::transform(lower.begin(), lower.end(), lower.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+            bool looks_foreign = false;
+            for (const auto& other_tag : kAllTags) {
+                if (other_tag == kThisTag) {
+                    continue;
+                }
+                if (lower.find(other_tag) != std::string::npos) {
+                    looks_foreign = true;
+                    break;
+                }
+            }
+
+            if (looks_foreign) {
+                LOG_WARNING(Common, "Skipping fallback asset for a different platform: {}", asset);
+                continue;
+            }
+
+            found_assets.emplace_back(Asset{
+                .name = "Fallback",
+                .url = host,
+                .path = asset,
+                .filename = filename_str,
+            });
+            LOG_WARNING(Common, "Using fallback asset: {}", asset);
+            break;
+        }
+    }
+
     return found_assets;
 }
 
@@ -144,7 +219,8 @@ std::optional<Release> Release::FromJson(const nlohmann::json& json, const std::
 
     // This is our own "fake" API.
     if (json.contains("base")) {
-        const auto base = json.value("base", fmt::format("https://{}", Common::g_build_auto_update_api));
+        const auto base =
+            json.value("base", fmt::format("https://{}", Common::g_build_auto_update_api));
         rel.base_download_url = fmt::format("{}/{}", base, rel.tag);
 
         // Assets are easy :)
@@ -157,7 +233,7 @@ std::optional<Release> Release::FromJson(const nlohmann::json& json, const std::
         // assets are a bit more complex here. :(
         std::vector<std::string> assets;
         const nlohmann::json& arr = json["assets"];
-        for (const auto &obj : arr) {
+        for (const auto& obj : arr) {
             const auto url = obj.value("browser_download_url", std::string{});
             assets.emplace_back(url);
         }
@@ -267,7 +343,7 @@ std::vector<Release> GetReleases() {
 }
 
 std::optional<Release> GetLatestRelease() {
-    const auto releases_path =  Common::g_build_auto_update_api_path;
+    const auto releases_path = Common::g_build_auto_update_api_path;
     const auto url = fmt::format("https://{}", Common::g_build_auto_update_api);
 
     const auto body = MakeRequest(url, releases_path);

@@ -17,6 +17,9 @@ public:
     explicit AboutDialog(QWidget* parent);
     ~AboutDialog() override;
 
+private slots:
+    void OnCheckForUpdates();
+
 private:
     std::unique_ptr<Ui::AboutDialog> ui;
 };

@@ -4,6 +4,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QNetworkAccessManager>
 #include "common/net/net.h"
 
 class QRadioButton;
@@ -18,11 +19,26 @@ public:
     explicit UpdateDialog(const Common::Net::Release& release, QWidget* parent = nullptr);
     ~UpdateDialog();
 
+    void accept() override;
+
 private slots:
     void Download();
 
 private:
+    void Install(const QString& tempDirPath);
+    void ApplyModernStyle();
+#ifndef _WIN32
+    QString WriteInstallScript(const QString& tempDirPath, const QString& rootPath);
+#endif
+
     Ui::UpdateDialog* ui;
     QList<QRadioButton*> m_buttons;
     Common::Net::Asset m_asset;
+    Common::Net::Release m_release;
+    QNetworkAccessManager* networkManager;
+
+    // Full path to the downloaded archive, including the *correct* extension
+    // for whatever asset was actually downloaded (.zip, .tar.gz, ...).
+    QString m_downloadPath;
+    QString m_archiveExtension;
 };
