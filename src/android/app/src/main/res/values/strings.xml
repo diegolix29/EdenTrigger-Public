@@ -408,6 +408,10 @@
     <string name="contributors_link" translatable="false">https://git.eden-emu.dev/eden-emu/eden/activity/contributors</string>
     <string name="licenses_description">Projects that make Eden for Android possible</string>
     <string name="build">Build</string>
+    <string name="check_for_updates">Check for Updates</string>
+    <string name="check_for_updates_description">Check if a new version is available</string>
+    <string name="update_check_disabled">Update checking is disabled in this build</string>
+    <string name="no_update_available">You are already using the latest version</string>
     <string name="user_data">User data</string>
     <string name="user_data_description">Import/export all app data.\n\nWhen importing user data, all existing user data will be deleted!\n\nImporting data from Citron may cause issues. It\'s recommended to manually import all needed data.</string>
     <string name="exporting_user_data">Exporting user data…</string>

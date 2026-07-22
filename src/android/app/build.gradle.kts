@@ -80,6 +80,7 @@ android {
                     listOf(
                         "-DENABLE_QT=0", // Don't use QT
                         "-DENABLE_WEB_SERVICE=1", // Enable web service
+                        "-DENABLE_UPDATE_CHECKER=ON", // Enable update checker
                         "-DANDROID_ARM_NEON=true", // cryptopp requires Neon to work
                         "-DYUZU_USE_CPM=ON",
                         "-DCPMUTIL_FORCE_BUNDLED=ON",
@@ -94,7 +95,6 @@ android {
 
                 if (isNightly) {
                     arguments.addAll(listOf(
-                        "-DENABLE_UPDATE_CHECKER=ON",
                         "-DNIGHTLY_BUILD=ON",
                     ))
                 }
