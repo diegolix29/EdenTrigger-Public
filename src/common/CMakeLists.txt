@@ -145,7 +145,11 @@ add_library(
     fs/ryujinx_compat.h fs/ryujinx_compat.cpp
     fs/symlink.h fs/symlink.cpp
     httplib.h
-    net/net.h net/net.cpp)
+    net/net.h net/net.cpp
+    nextendo/nextendo_account.h nextendo/nextendo_account.cpp
+    nextendo/nextendo_endpoint.h nextendo/nextendo_endpoint.cpp
+    nextendo/nextendo_api.h nextendo/nextendo_api.cpp
+    nextendo/nextendo_network_check.h nextendo/nextendo_network_check.cpp)
 
 if(WIN32)
     target_sources(common PRIVATE windows/timer_resolution.cpp
