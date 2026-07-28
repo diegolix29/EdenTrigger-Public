@@ -4,6 +4,9 @@
 #include "common/nextendo/nextendo_api.h"
 #include "common/nextendo/nextendo_account.h"
 #include "common/nextendo/nextendo_endpoint.h"
+#include "common/nextendo/nextendo_crypto_utils.h"
+#include "common/nextendo/nextendo_oauth_listener.h"
+#include "common/nextendo/nextendo_platform_utils.h"
 #include "common/logging.h"
 #include "common/httplib.h"
 #include <nlohmann/json.hpp>
@@ -12,6 +15,8 @@
 #include <iomanip>
 #include <openssl/sha.h>
 #include <openssl/hmac.h>
+#include <thread>
+#include <chrono>
 
 namespace Common::Nextendo {
 
@@ -379,9 +384,106 @@ void NextendoApi::SetFavorite(uint64_t pid, bool favorite) {
 
 std::tuple<bool, std::string> NextendoApi::SignInWithBrowser() {
     // OAuth 2.0 with PKCE implementation
-    // This is complex and requires opening a browser and handling a callback
-    // For now, return not implemented
-    return {false, "Browser sign-in not yet implemented"};
+    try {
+        // PKCE (S256) + CSRF state
+        std::string verifier = CryptoUtils::GenerateRandomUrlString(32);
+        std::vector<uint8_t> verifier_bytes(verifier.begin(), verifier.end());
+        std::vector<uint8_t> hash = CryptoUtils::SHA256(verifier_bytes);
+        std::string challenge = CryptoUtils::Base64UrlEncode(hash);
+        std::string state = CryptoUtils::GenerateRandomUrlString(24);
+
+        // Start OAuth listener
+        OAuthListener listener;
+        int port = listener.Start();
+        if (port == 0) {
+            return {false, "Failed to start OAuth listener"};
+        }
+
+        std::string redirectUri = "http://127.0.0.1:" + std::to_string(port) + "/callback";
+
+        // Build authorization URL
+        std::string baseUrl = GetBaseUrl();
+        std::string authorizeUrl = baseUrl + "/api/oauth/authorize?response_type=code"
+                                   "&client_id=nextendo-emulator"
+                                   "&redirect_uri=" + redirectUri +
+                                   "&scope=identity+friends"
+                                   "&state=" + state +
+                                   "&code_challenge=" + challenge +
+                                   "&code_challenge_method=S256";
+
+        // Open browser
+        if (!PlatformUtils::OpenUrl(authorizeUrl)) {
+            listener.Stop();
+            return {false, "Failed to open browser"};
+        }
+
+        // Get the callback data (set callback BEFORE waiting)
+        std::string code, callback_state, error;
+        listener.SetCallback([&](const std::string& c, const std::string& s, const std::string& e) {
+            code = c;
+            callback_state = s;
+            error = e;
+        });
+
+        // Wait for callback (5 minute timeout)
+        if (!listener.WaitForCallback(300)) {
+            listener.Stop();
+            return {false, "Connection timeout"};
+        }
+
+        listener.Stop();
+
+        if (!error.empty()) {
+            return {false, error == "access_denied" ? "Connection refused" : error};
+        }
+
+        if (code.empty()) {
+            return {false, "No code received from browser"};
+        }
+
+        if (callback_state != state) {
+            return {false, "CSRF verification failed"};
+        }
+
+        // Exchange code for token
+        httplib::Client client(baseUrl);
+        client.set_connection_timeout(15);
+        client.set_read_timeout(15);
+        client.set_write_timeout(15);
+
+        std::string form_data = "grant_type=authorization_code"
+                               "&code=" + code +
+                               "&client_id=nextendo-emulator"
+                               "&redirect_uri=" + redirectUri +
+                               "&code_verifier=" + verifier;
+
+        auto res = client.Post("/api/oauth/token", form_data, "application/x-www-form-urlencoded");
+
+        if (!res || res->status != 200) {
+            return {false, "Failed to exchange authorization code"};
+        }
+
+        json response = json::parse(res->body);
+        std::string nexToken = response.value("nex_token", "");
+
+        if (nexToken.empty() || !response.contains("account")) {
+            return {false, "Invalid authentication response"};
+        }
+
+        uint64_t pid = response["account"].value("pid", 0);
+        std::string username = response["account"].value("username", "");
+        std::string friendCode = response["account"].value("friend_code", "");
+
+        if (pid == 0 || nexToken.empty()) {
+            return {false, "Invalid account data in response"};
+        }
+
+        NextendoAccount::Save(pid, username, friendCode, nexToken, false);
+        return {true, ""};
+
+    } catch (const std::exception& ex) {
+        return {false, ex.what()};
+    }
 }
 
 std::tuple<bool, std::string> NextendoApi::SetUsername(const std::string& username) {

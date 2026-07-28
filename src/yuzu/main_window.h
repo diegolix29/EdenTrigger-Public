@@ -456,6 +456,7 @@ private:
     bool CheckFirmwarePresence();
     void SetFirmwareVersion();
     void SetFPSSuffix();
+    void OnSignInNextendo();
     /**
      * Open (or not) the right confirm dialog based on current setting and game exit lock
      * @returns true if the player confirmed or the settings do no require it

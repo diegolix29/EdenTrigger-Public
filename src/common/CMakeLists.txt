@@ -149,7 +149,14 @@ add_library(
     nextendo/nextendo_account.h nextendo/nextendo_account.cpp
     nextendo/nextendo_endpoint.h nextendo/nextendo_endpoint.cpp
     nextendo/nextendo_api.h nextendo/nextendo_api.cpp
-    nextendo/nextendo_network_check.h nextendo/nextendo_network_check.cpp)
+    nextendo/nextendo_network_check.h nextendo/nextendo_network_check.cpp
+    nextendo/nextendo_save_sync.h nextendo/nextendo_save_sync.cpp
+    nextendo/nextendo_mii_sync.h nextendo/nextendo_mii_sync.cpp
+    nextendo/nextendo_beta.h nextendo/nextendo_beta.cpp
+    nextendo/nextendo_nex_integration.h
+    nextendo/nextendo_crypto_utils.h nextendo/nextendo_crypto_utils.cpp
+    nextendo/nextendo_oauth_listener.h nextendo/nextendo_oauth_listener.cpp
+    nextendo/nextendo_platform_utils.h nextendo/nextendo_platform_utils.cpp)
 
 if(WIN32)
     target_sources(common PRIVATE windows/timer_resolution.cpp

@@ -10,9 +10,13 @@
 #include "common/fs/path_util.h"
 #include "common/settings.h"
 #include "common/settings_enums.h"
+#include "common/nextendo/nextendo_api.h"
+#include "common/nextendo/nextendo_account.h"
 #include "frontend_common/settings_generator.h"
 #include "render/performance_overlay.h"
 #include "updater/update_dialog.h"
+#include <QtConcurrent>
+#include <QFutureWatcher>
 
 #include "common/fs/ryujinx_compat.h"
 #include "main_window.h"
@@ -1555,6 +1559,7 @@ void MainWindow::ConnectMenuEvents() {
     connect(ui->action_Show_Game_Name, &QAction::triggered, this, &MainWindow::ToggleShowGameName);
 
     // Multiplayer
+    connect(ui->action_Sign_In_Nextendo, &QAction::triggered, this, &MainWindow::OnSignInNextendo);
     connect(ui->action_View_Lobby, &QAction::triggered, multiplayer_state,
             &MultiplayerState::OnViewLobby);
     connect(ui->action_Start_Room, &QAction::triggered, multiplayer_state,
@@ -3155,6 +3160,30 @@ void MainWindow::OnOpenQuickstartGuide() {
 
 void MainWindow::OnOpenFAQ() {
     OpenURL(QUrl(QStringLiteral("https://yuzu-mirror.github.io/help")));
+}
+
+void MainWindow::OnSignInNextendo() {
+    // Run OAuth in a separate thread to avoid blocking the UI
+    QFuture<std::tuple<bool, std::string>> future = QtConcurrent::run([]() {
+        return Common::Nextendo::NextendoApi::SignInWithBrowser();
+    });
+
+    QFutureWatcher<std::tuple<bool, std::string>>* watcher = new QFutureWatcher<std::tuple<bool, std::string>>(this);
+    connect(watcher, &QFutureWatcher<std::tuple<bool, std::string>>::finished, this, [this, watcher]() {
+        auto [success, error] = watcher->result();
+        watcher->deleteLater();
+
+        if (success) {
+            QMessageBox::information(this, tr("Success"),
+                                   tr("Successfully signed in to Nextendo!\n\nUsername: %1")
+                                       .arg(QString::fromStdString(Common::Nextendo::NextendoAccount::GetUsername())));
+        } else {
+            QMessageBox::warning(this, tr("Error"),
+                                tr("Failed to sign in to Nextendo: %1").arg(QString::fromStdString(error)));
+        }
+    });
+
+    watcher->setFuture(future);
 }
 
 void MainWindow::ToggleFullscreen() {

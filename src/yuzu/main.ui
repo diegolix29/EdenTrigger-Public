@@ -162,6 +162,8 @@
     <property name="title">
      <string>&amp;Multiplayer</string>
     </property>
+    <addaction name="action_Sign_In_Nextendo"/>
+    <addaction name="separator"/>
     <addaction name="action_View_Lobby"/>
     <addaction name="action_Start_Room"/>
     <addaction name="action_Connect_To_Room"/>
@@ -347,6 +349,14 @@
    </property>
    <property name="text">
     <string>&amp;Browse Public Game Lobby</string>
+   </property>
+  </action>
+  <action name="action_Sign_In_Nextendo">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Sign In with Nextendo</string>
    </property>
   </action>
   <action name="action_Start_Room">
