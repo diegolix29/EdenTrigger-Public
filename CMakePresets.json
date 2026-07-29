@@ -36,7 +36,8 @@
       "inherits": "x64-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "ENABLE_UPDATE_CHECKER": "ON"
+        "ENABLE_UPDATE_CHECKER": "ON",
+        "YUZU_USE_BUNDLED_QT": "OFF"
       }
     },
     {
