@@ -468,7 +468,7 @@ jobs:
           fetch-depth: 0
 
       - name: Build in FreeBSD VM
-        uses: vmactions/freebsd-vm@v1
+        uses: vmactions/freebsd-vm@v1.5.0
         with:
           usesh: true
           # qt6-charts is left unprefixed (like quazip-qt6 and vulkan-headers
