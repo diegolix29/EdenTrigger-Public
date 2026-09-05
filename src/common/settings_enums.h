@@ -140,7 +140,7 @@ ENUM(DmaAccuracy, Default, Unsafe, Safe);
 ENUM(GpuFenceBehavior, Default, Immediate, Balanced, Accurate, Strict);
 ENUM(CpuBackend, Dynarmic, Nce);
 ENUM(CpuAccuracy, Auto, Accurate, Unsafe, Paranoid, Debugging);
-ENUM(CpuClock, Off, Boost, Fast)
+ENUM(CpuClock, Off, Normal, Boost, Fast, Overclock)
 ENUM(CpuCoreConfig, AllCores, EfficiencyOnly, PerformanceOnly, Custom)
 ENUM(MemoryLayout, Memory_4Gb, Memory_6Gb, Memory_8Gb, Memory_10Gb, Memory_12Gb);
 ENUM(ConfirmStop, Ask_Always, Ask_Based_On_Game, Ask_Never);

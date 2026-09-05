@@ -93,7 +93,7 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
     INSERT(Settings, cpu_backend, tr("Backend:"), QString());
     INSERT(Settings, cpu_core_config, tr("Core Configuration:"), tr("Select which CPU cores to use for emulation. Efficiency cores save battery, performance cores improve speed."));
     INSERT(Settings,
-           fast_cpu_time,
+           cpu_clock,
            tr("CPU Overclock"),
            tr("Overclocks the emulated CPU to remove some FPS limiters. Weaker CPUs may see reduced performance, "
               "and certain games may behave improperly.\nUse Boost (1700MHz) to run at the Switch's highest native "

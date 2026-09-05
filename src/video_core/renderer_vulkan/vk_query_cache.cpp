@@ -13,7 +13,6 @@
 #include "common/container/unordered_map.h"
 #include <utility>
 #include <vector>
-#include <ankerl/unordered_dense.h>
 #include "common/bit_util.h"
 #include "common/common_types.h"
 #include "video_core/engines/maxwell_3d.h"

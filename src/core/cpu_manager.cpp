@@ -214,7 +214,6 @@ void CpuManager::RunThread(std::stop_token token, std::size_t core) {
 #ifdef __ANDROID__
     // Apply CPU core affinity based on configuration
     ApplyCpuCoreAffinity(core);
-#endif
     Common::PinCurrentThreadToPerformanceCore(core);
 #endif
     auto& data = core_data[core];

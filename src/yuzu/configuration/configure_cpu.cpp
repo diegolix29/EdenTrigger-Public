@@ -86,10 +86,10 @@ void ConfigureCpu::Setup(const ConfigurationShared::Builder& builder) {
         } else if (setting->Id() == Settings::values.cpu_core_config.Id()) {
             core_config_layout->addWidget(widget);
             core_config_combobox = widget->combobox;
-        } else if (setting->Id() == Settings::values.fast_cpu_time.Id() ||
+        } else if (setting->Id() == Settings::values.cpu_clock.Id() ||
                    setting->Id() == Settings::values.vtable_bouncing.Id() ||
                    setting->Id() == Settings::values.cpu_ticks.Id()) {
-        } else if (setting->Id() == Settings::values.fast_cpu_time.Id() ||
+        } else if (setting->Id() == Settings::values.cpu_clock.Id() ||
                    setting->Id() == Settings::values.cpu_ticks.Id()) {
             ui->general_layout->addWidget(widget);
         } else {

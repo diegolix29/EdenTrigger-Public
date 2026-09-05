@@ -431,7 +431,6 @@ void RememberCurrentThreadNice(pid_t tid, s32 nice_value) {
 } // Anonymous namespace
 #endif
 
-#include "common/cpu_features.h"
 #ifdef ARCHITECTURE_x86_64
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -441,6 +440,7 @@ void RememberCurrentThreadNice(pid_t tid, s32 nice_value) {
 #   define cpu_set_t cpuset_t
 #endif
 #include "common/x64/rdtsc.h"
+#endif
 #endif
 
 namespace Common {
@@ -647,6 +647,43 @@ void PinCurrentThreadToCore(size_t core_id) {
         // No pin functionality implemented
 #endif
     }
+}
+
+void PinCurrentThreadToPerformanceCore(size_t core_id) {
+#if defined(__ANDROID__)
+    CpuTopologyState& state = State();
+    std::scoped_lock lock{state.topology_mutex};
+    EnsureTopologyLocked(state);
+
+    if (!state.separated) {
+        // If topology is not separated, just pin to the specific core
+        PinCurrentThreadToCore(core_id);
+        return;
+    }
+
+    // Pin to the specific core within the performance set
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(core_id, &set);
+
+    // Ensure the core is in the performance set
+    if (CPU_ISSET(core_id, &state.performance)) {
+        sched_setaffinity(pthread_self(), sizeof(set), &set);
+    } else {
+        // If the requested core is not a performance core, pin to the first performance core
+        for (s32 cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
+            if (CPU_ISSET(cpu, &state.performance)) {
+                CPU_ZERO(&set);
+                CPU_SET(cpu, &set);
+                sched_setaffinity(pthread_self(), sizeof(set), &set);
+                break;
+            }
+        }
+    }
+#else
+    // On non-Android platforms, just pin to the specific core
+    PinCurrentThreadToCore(core_id);
+#endif
 }
 
 } // namespace Common
