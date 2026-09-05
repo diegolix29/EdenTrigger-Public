@@ -96,7 +96,12 @@ if (UNIX AND NOT APPLE)
     if (DEFINED Qt6Gui_PRIVATE_INCLUDE_DIRS)
         target_include_directories(qt_common PRIVATE ${Qt6Gui_PRIVATE_INCLUDE_DIRS})
     else()
-        target_link_libraries(qt_common PRIVATE Qt6::GuiPrivate)
+        # Check if Qt6::GuiPrivate target exists before linking
+        if (TARGET Qt6::GuiPrivate)
+            target_link_libraries(qt_common PRIVATE Qt6::GuiPrivate)
+        else()
+            message(WARNING "Qt6::GuiPrivate target not found. Skipping private GUI libraries.")
+        endif()
     endif()
 endif()
 

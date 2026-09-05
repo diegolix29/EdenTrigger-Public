@@ -187,11 +187,16 @@ AddJsonPackage(spirv-headers)
 if (YUZU_USE_BUNDLED_SIRIT)
     AddJsonPackage(sirit-ci)
 else()
-    AddJsonPackage(sirit)
-    if(MSVC AND CXX_CLANG)
-        target_compile_options(siritobj PRIVATE
-            $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-error=unused-command-line-argument>
-        )
+    # Use sirit-ci on macOS to fix std::abort() compilation error
+    if(APPLE)
+        AddJsonPackage(sirit-ci)
+    else()
+        AddJsonPackage(sirit)
+        if(MSVC AND CXX_CLANG)
+            target_compile_options(siritobj PRIVATE
+                $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-error=unused-command-line-argument>
+            )
+        endif()
     endif()
 endif()
 
