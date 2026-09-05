@@ -127,17 +127,15 @@ void LogSettings() {
                     setting->UsingGlobal() ? '-' : 'C', TranslateCategory(category),
                     setting->GetLabel());
                 if (is_default)
-                    settings_list.push_back(fmt::format("{}: {}\n", name, setting->Canonicalize()));
+                    settings_list.push_back(fmt::format("{}: {}", name, setting->Canonicalize()));
                 else
-                    settings_list.push_front(fmt::format("{}: {}\n", name, setting->Canonicalize()));
+                    settings_list.push_front(fmt::format("{}: {}", name, setting->Canonicalize()));
             }
         }
     }
-
-    std::string settings_str{};
+    LOG_INFO(Config, "Eden Configuration:");
     for (auto const& e : settings_list)
-        settings_str += e;
-    LOG_INFO(Config, "Eden Configuration:\n{}", settings_str);
+        LOG_INFO(Config, "{}", e);
 #define LOG_PATH(NAME) \
     LOG_INFO(Config, #NAME ": {}", Common::FS::PathToUTF8String(Common::FS::GetEdenPath(Common::FS::EdenPath::NAME)))
     LOG_PATH(CacheDir);
@@ -149,7 +147,7 @@ void LogSettings() {
 #undef LOG_PATH
 }
 
-bool getDebugKnobAt(u8 i) {
+bool GetDebugKnobAt(u8 i) {
     return (values.debug_knobs.GetValue() & (1 << (i & 0xF))) != 0;
 }
 
@@ -379,6 +377,28 @@ void UpdateRescalingInfo() {
     const auto setup = values.resolution_setup.GetValue();
     auto& info = values.resolution_info;
     TranslateResolutionInfo(setup, info);
+}
+
+u32 FrameGenMultiplier() {
+    return std::clamp(values.frame_gen_multiplier.GetValue(), MIN_FRAME_GEN_MULTIPLIER,
+                      MAX_FRAME_GEN_MULTIPLIER);
+}
+
+size_t FrameGenGenerations() {
+    if (!values.frame_gen.GetValue()) {
+        return 0;
+    }
+    return FrameGenMultiplier() - 1;
+}
+
+size_t FrameGenMaxGenerations() {
+    if (!values.frame_gen.GetValue()) {
+        return 0;
+    }
+    if (values.frame_gen_target_rate.GetValue() != 0) {
+        return MAX_FRAME_GEN_MULTIPLIER - 1;
+    }
+    return FrameGenMultiplier() - 1;
 }
 
 void RestoreGlobalState(bool is_powered_on) {

@@ -10,6 +10,7 @@
 #include <condition_variable>
 #include <list>
 #include <memory>
+#include <utility>
 
 #include "common/assert.h"
 #include "common/settings.h"
@@ -38,6 +39,19 @@
 #include "video_core/shader_notify.h"
 
 namespace Tegra {
+
+namespace {
+constexpr u64 GpuClockMultiplier(Settings::GpuClock clock) {
+    switch (clock) {
+    case Settings::GpuClock::Boost:
+        return 256;
+    case Settings::GpuClock::Overclock:
+        return 512;
+    default:
+        return 1;
+    }
+}
+} // Anonymous namespace
 
 struct GPU::Impl {
     explicit Impl(Core::System& system_, bool is_async_, bool use_nvdec_)
@@ -116,7 +130,7 @@ struct GPU::Impl {
     [[nodiscard]] u64 RequestSyncOperation(Func&& action) {
         std::unique_lock lck{sync_request_mutex};
         const u64 fence = ++last_sync_fence;
-        sync_requests.emplace_back(action);
+        sync_requests.emplace_back(std::forward<Func>(action));
         return fence;
     }
 
@@ -128,6 +142,12 @@ struct GPU::Impl {
     void WaitForSyncOperation(const u64 fence) {
         std::unique_lock lck{sync_request_mutex};
         sync_request_cv.wait(lck, [this, fence] { return CurrentSyncRequestFence() >= fence; });
+    }
+
+    void WaitForIdle() {
+        const u64 fence = RequestSyncOperation([] {});
+        gpu_thread.TickGPU(is_async);
+        WaitForSyncOperation(fence);
     }
 
     /// Tick pending requests within the GPU.
@@ -145,14 +165,8 @@ struct GPU::Impl {
     }
 
     [[nodiscard]] u64 GetTicks() const {
-        u64 gpu_tick = system.CoreTiming().GetGPUTicks();
-        Settings::GpuOverclock overclock = Settings::values.fast_gpu_time.GetValue();
-
-        if (overclock != Settings::GpuOverclock::Normal) {
-            gpu_tick /= 256 * u64(overclock);
-        }
-
-        return gpu_tick;
+        const u64 gpu_tick = system.CoreTiming().GetGPUTicks();
+        return gpu_tick / GpuClockMultiplier(Settings::values.gpu_clock.GetValue());
     }
 
     void RendererFrameEndNotify() {
@@ -226,9 +240,9 @@ struct GPU::Impl {
     }
 
     void RequestComposite(std::vector<Tegra::FramebufferConfig>&& layers, std::vector<Service::Nvidia::NvFence>&& fences) {
-        size_t num_fences{fences.size()};
+        const size_t num_fences{fences.size()};
         size_t current_request_counter{};
-        {
+        if (num_fences != 0) {
             std::unique_lock<std::mutex> lk(request_swap_mutex);
             if (free_swap_counters.empty()) {
                 current_request_counter = request_swap_counters.size();
@@ -239,27 +253,42 @@ struct GPU::Impl {
                 free_swap_counters.pop_front();
             }
         }
-        const auto wait_fence = RequestSyncOperation([this, current_request_counter, &layers, &fences, num_fences] {
-            auto& syncpoint_manager = system.Host1x().GetSyncpointManager();
-            if (num_fences == 0) {
-                renderer->Composite(layers);
-            }
-            const auto executer = [this, current_request_counter, layers_copy = layers]() {
-                {
-                    std::unique_lock<std::mutex> lk(request_swap_mutex);
-                    if (--request_swap_counters[current_request_counter] != 0) {
-                        return;
-                    }
-                    free_swap_counters.push_back(current_request_counter);
+        pending_composite_fence = RequestSyncOperation(
+            [this, current_request_counter, num_fences, composite_layers = std::move(layers),
+             composite_fences = std::move(fences)] {
+                if (num_fences == 0) {
+                    renderer->Composite(composite_layers);
+                    return;
                 }
-                renderer->Composite(layers_copy);
-            };
-            for (size_t i = 0; i < num_fences; i++) {
-                syncpoint_manager.RegisterGuestAction(fences[i].id, fences[i].value, executer);
-            }
-        });
+                auto& syncpoint_manager = system.Host1x().GetSyncpointManager();
+                const auto executer = [this, current_request_counter, composite_layers]() {
+                    {
+                        std::unique_lock<std::mutex> lk(request_swap_mutex);
+                        if (--request_swap_counters[current_request_counter] != 0) {
+                            return;
+                        }
+                        free_swap_counters.push_back(current_request_counter);
+                    }
+                    renderer->Composite(composite_layers);
+                };
+                for (size_t i = 0; i < num_fences; i++) {
+                    syncpoint_manager.RegisterGuestAction(composite_fences[i].id,
+                                                          composite_fences[i].value, executer);
+                }
+            });
         gpu_thread.TickGPU(is_async);
-        WaitForSyncOperation(wait_fence);
+    }
+
+    void WaitForComposite() {
+        const u64 fence = pending_composite_fence;
+        if (fence == 0) {
+            return;
+        }
+        pending_composite_fence = 0;
+        if (shutting_down.load(std::memory_order_relaxed)) {
+            return;
+        }
+        WaitForSyncOperation(fence);
     }
 
     std::vector<u8> GetAppletCaptureBuffer() {
@@ -305,13 +334,14 @@ struct GPU::Impl {
     std::unique_ptr<Core::Frontend::GraphicsContext> cpu_context;
 
     Tegra::Control::Scheduler scheduler;
-    ankerl::unordered_dense::map<s32, std::shared_ptr<Tegra::Control::ChannelState>> channels;
+    ::Common::unordered_map<s32, std::shared_ptr<Tegra::Control::ChannelState>> channels;
     Tegra::Control::ChannelState* current_channel;
     s32 bound_channel{-1};
 
     std::deque<size_t> free_swap_counters;
     std::deque<size_t> request_swap_counters;
     std::mutex request_swap_mutex;
+    u64 pending_composite_fence{};
 };
 
 GPU::GPU(Core::System& system, bool is_async, bool use_nvdec)
@@ -429,6 +459,10 @@ void GPU::RequestComposite(std::vector<Tegra::FramebufferConfig>&& layers,
     impl->RequestComposite(std::move(layers), std::move(fences));
 }
 
+void GPU::WaitForComposite() {
+    impl->WaitForComposite();
+}
+
 std::vector<u8> GPU::GetAppletCaptureBuffer() {
     return impl->GetAppletCaptureBuffer();
 }
@@ -455,6 +489,10 @@ void GPU::Start() {
 
 void GPU::NotifyShutdown() {
     impl->NotifyShutdown();
+}
+
+void GPU::WaitForIdle() {
+    impl->WaitForIdle();
 }
 
 void GPU::ObtainContext() {

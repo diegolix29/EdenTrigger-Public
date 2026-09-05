@@ -121,6 +121,8 @@ add_library(
     swap.h
     thread.cpp
     thread.h
+    adpf.cpp
+    adpf.h
     thread_queue_list.h
     thread_worker.h
     threadsafe_queue.h
@@ -145,7 +147,8 @@ add_library(
     fs/ryujinx_compat.h fs/ryujinx_compat.cpp
     fs/symlink.h fs/symlink.cpp
     httplib.h
-    net/net.h net/net.cpp)
+    net/net.h net/net.cpp
+    container/unordered_map.h container/unordered_set.h)
 
 if(WIN32)
     target_sources(common PRIVATE windows/timer_resolution.cpp
@@ -221,7 +224,7 @@ endif()
 if(CXX_CLANG)
     target_compile_options(common PRIVATE
         $<$<COMPILE_LANGUAGE:C,CXX>:-fsized-deallocation>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-Werror=unreachable-code-aggressive>)
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wunreachable-code-aggressive>)
     target_compile_definitions(
         common
         PRIVATE
@@ -242,7 +245,7 @@ if (lz4_ADDED)
     target_include_directories(common PRIVATE ${lz4_SOURCE_DIR}/lib)
 endif()
 
-target_link_libraries(common PUBLIC fmt::fmt stb::headers Threads::Threads unordered_dense::unordered_dense)
+target_link_libraries(common PUBLIC fmt::fmt stb::headers Threads::Threads)
 target_link_libraries(common PRIVATE lz4::lz4 zstd::zstd)
 
 # Please refer to src/common/demangle.cpp

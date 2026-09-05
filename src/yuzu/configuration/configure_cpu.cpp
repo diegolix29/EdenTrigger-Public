@@ -82,6 +82,7 @@ void ConfigureCpu::Setup(const ConfigurationShared::Builder& builder) {
         } else if (setting->Id() == Settings::values.cpu_backend.Id()) {
             backend_layout->addWidget(widget);
             backend_combobox = widget->combobox;
+        } else if (setting->Id() == Settings::values.cpu_ticks.Id()) {
         } else if (setting->Id() == Settings::values.cpu_core_config.Id()) {
             core_config_layout->addWidget(widget);
             core_config_combobox = widget->combobox;

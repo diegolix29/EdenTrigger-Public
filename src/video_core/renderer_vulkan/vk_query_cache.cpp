@@ -10,6 +10,7 @@
 #include <memory>
 #include <span>
 #include <type_traits>
+#include "common/container/unordered_map.h"
 #include <utility>
 #include <vector>
 #include <ankerl/unordered_dense.h>
@@ -247,7 +248,7 @@ public:
         sync_values_stash.emplace_back();
         std::vector<HostSyncValues>* sync_values = &sync_values_stash.back();
         sync_values->reserve(num_slots_used);
-        ankerl::unordered_dense::map<size_t, std::pair<size_t, size_t>> offsets;
+        ::Common::unordered_map<size_t, std::pair<size_t, size_t>> offsets;
         resolve_buffers.clear();
         size_t resolve_buffer_index = ObtainBuffer<true>(num_slots_used);
         resolve_buffers.push_back(resolve_buffer_index);
@@ -429,7 +430,7 @@ private:
     template <bool is_ordered, typename Func>
     void ApplyBanksWideOp(std::vector<size_t>& queries, Func&& func) {
         std::conditional_t<is_ordered, std::map<size_t, std::pair<size_t, size_t>>,
-                           ankerl::unordered_dense::map<size_t, std::pair<size_t, size_t>>>
+                           ::Common::unordered_map<size_t, std::pair<size_t, size_t>>>
             indexer;
         for (auto q : queries) {
             auto* query = GetQuery(q);
@@ -758,7 +759,7 @@ public:
 
     void SyncWrites() override {
         CloseCounter();
-        ankerl::unordered_dense::map<size_t, std::vector<HostSyncValues>> sync_values_stash;
+        ::Common::unordered_map<size_t, std::vector<HostSyncValues>> sync_values_stash;
         for (auto q : pending_sync) {
             auto* query = GetQuery(q);
             if (True(query->flags & VideoCommon::QueryFlagBits::IsRewritten)) {

@@ -25,8 +25,10 @@ import org.yuzu.yuzu_emu.features.settings.model.Settings
 import org.yuzu.yuzu_emu.features.settings.model.Settings.MenuTag
 import org.yuzu.yuzu_emu.features.settings.model.ShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.StringSetting
+import org.yuzu.yuzu_emu.features.settings.model.UShortSetting
 import org.yuzu.yuzu_emu.features.settings.model.view.*
 import org.yuzu.yuzu_emu.utils.InputHandler
+import org.yuzu.yuzu_emu.utils.LosslessScalingHelper
 import org.yuzu.yuzu_emu.utils.NativeConfig
 import org.yuzu.yuzu_emu.utils.DirectoryInitialization
 import org.yuzu.yuzu_emu.utils.FullscreenHelper
@@ -77,6 +79,46 @@ class SettingsFragmentPresenter(
         }
     }
 
+    private fun addFrameGenSettings(sl: ArrayList<SettingsItem>) {
+        sl.apply {
+            if (!LosslessScalingHelper.isSupportedByGpu()) {
+                add(
+                    RunnableSetting(
+                        titleId = R.string.frame_gen_unsupported,
+                        descriptionId = R.string.frame_gen_unsupported_description,
+                        isRunnable = false
+                    ) {}
+                )
+            } else if (!LosslessScalingHelper.isInstalled()) {
+                add(
+                    RunnableSetting(
+                        titleId = R.string.lossless_scaling_missing,
+                        descriptionId = R.string.lossless_scaling_missing_description,
+                        isRunnable = false
+                    ) {}
+                )
+            }
+
+            add(BooleanSetting.RENDERER_FRAME_GEN.key)
+            add(IntSetting.RENDERER_FRAME_GEN_TARGET_RATE.key)
+            if (IntSetting.RENDERER_FRAME_GEN_TARGET_RATE.getInt(
+                    getNeedsGlobalForKey(IntSetting.RENDERER_FRAME_GEN_TARGET_RATE.key)
+                ) == 0
+            ) {
+                add(IntSetting.RENDERER_FRAME_GEN_MULTIPLIER.key)
+            }
+            add(IntSetting.RENDERER_FRAME_GEN_QUEUE_TARGET.key)
+            add(BooleanSetting.RENDERER_FRAME_GEN_FLOW_SCALE_AUTO.key)
+            if (!BooleanSetting.RENDERER_FRAME_GEN_FLOW_SCALE_AUTO.getBoolean(
+                    getNeedsGlobalForKey(BooleanSetting.RENDERER_FRAME_GEN_FLOW_SCALE_AUTO.key)
+                )
+            ) {
+                add(IntSetting.RENDERER_FRAME_GEN_FLOW_SCALE.key)
+            }
+            add(BooleanSetting.RENDERER_FRAME_GEN_FP16.key)
+        }
+    }
+
     private fun isSharpnessScalingFilterSelected(): Boolean {
         val needsGlobal = getNeedsGlobalForKey(IntSetting.RENDERER_SCALING_FILTER.key)
         val selectedFilter = IntSetting.RENDERER_SCALING_FILTER.getInt(needsGlobal)
@@ -121,6 +163,7 @@ class SettingsFragmentPresenter(
             MenuTag.SECTION_ROOT -> addConfigSettings(sl)
             MenuTag.SECTION_SYSTEM -> addSystemSettings(sl)
             MenuTag.SECTION_RENDERER -> addGraphicsSettings(sl)
+            MenuTag.SECTION_FRAME_GEN -> addFrameGenSettings(sl)
             MenuTag.SECTION_PERFORMANCE_STATS -> addPerformanceOverlaySettings(sl)
             MenuTag.SECTION_SOC_OVERLAY -> addSocOverlaySettings(sl)
             MenuTag.SECTION_INPUT_OVERLAY -> addInputOverlaySettings(sl)
@@ -264,7 +307,9 @@ class SettingsFragmentPresenter(
                     )
                 )
             }
+            add(HeaderSetting(R.string.clocks))
             add(IntSetting.FAST_CPU_TIME.key)
+            add(IntSetting.FAST_GPU_TIME.key)
             add(BooleanSetting.CORE_SYNC_CORE_SPEED.key)
 
             add(IntSetting.MEMORY_LAYOUT.key)
@@ -282,8 +327,6 @@ class SettingsFragmentPresenter(
     // TODO(crueter): sub-submenus?
     private fun addGraphicsSettings(sl: ArrayList<SettingsItem>) {
         sl.apply {
-            // add(IntSetting.RENDERER_NVDEC_EMULATION.key)
-
             add(IntSetting.RENDERER_RESOLUTION.key)
             add(IntSetting.RENDERER_VSYNC.key)
             add(IntSetting.RENDERER_SCALING_FILTER.key)
@@ -300,6 +343,7 @@ class SettingsFragmentPresenter(
             add(IntSetting.MAX_ANISOTROPY.key)
             add(IntSetting.RENDERER_VRAM_USAGE_MODE.key)
             add(IntSetting.RENDERER_ASTC_DECODE_METHOD.key)
+            add(IntSetting.RENDERER_NVDEC_EMULATION.key)
 
             add(BooleanSetting.SYNC_MEMORY_OPERATIONS.key)
             add(BooleanSetting.RENDERER_USE_DISK_SHADER_CACHE.key)
@@ -311,11 +355,9 @@ class SettingsFragmentPresenter(
 
             add(HeaderSetting(R.string.hacks))
 
-            add(IntSetting.FAST_GPU_TIME.key)
             add(BooleanSetting.SKIP_CPU_INNER_INVALIDATION.key)
             add(BooleanSetting.FIX_BLOOM_EFFECTS.key)
             add(BooleanSetting.EMULATE_BGR565.key)
-            add(BooleanSetting.RESCALE_HACK.key)
             add(BooleanSetting.RENDERER_ASYNCHRONOUS_SHADERS.key)
             add(IntSetting.ANDROID_PIPELINE_WORKERS.key)
             add(BooleanSetting.RENDERER_ASYNCHRONOUS_GPU_EMULATION.key)
@@ -1296,11 +1338,12 @@ class SettingsFragmentPresenter(
                 add(HeaderSetting(R.string.log))
 
                 add(BooleanSetting.DEBUG_FLUSH_BY_LINE.key)
+                add(StringSetting.LOG_FILTER.key)
             }
 
             add(HeaderSetting(R.string.general))
 
-            add(ShortSetting.DEBUG_KNOBS.key)
+            add(UShortSetting.DEBUG_KNOBS.key)
             add(StringSetting.PROGRAM_ARGS.key)
 
             if (!NativeConfig.isPerGameConfigLoaded()) {
@@ -1310,6 +1353,7 @@ class SettingsFragmentPresenter(
                 add(BooleanSetting.DUMP_GUEST_SHADERS.key)
                 add(BooleanSetting.GPU_LOG_SHADER_DUMPS.key)
                 add(BooleanSetting.DUMP_MACROS.key)
+                add(BooleanSetting.RENDERER_FRAME_GEN_DUMP_FLOW.key)
                 add(BooleanSetting.GPU_LOG_MEMORY_TRACKING.key)
                 add(BooleanSetting.GPU_LOG_DRIVER_DEBUG.key)
                 add(IntSetting.GPU_LOG_RING_BUFFER_SIZE.key)

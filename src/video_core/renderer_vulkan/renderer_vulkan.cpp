@@ -49,6 +49,23 @@ constexpr VkExtent2D CaptureImageSize{
     .height = VideoCore::Capture::LinearHeight,
 };
 
+#ifdef HAS_LSFG
+[[nodiscard]] VkExtent2D GuestExtent(std::span<const Tegra::FramebufferConfig> framebuffers) {
+    if (framebuffers.empty()) {
+        return VkExtent2D{};
+    }
+
+    const auto& framebuffer = framebuffers.front();
+    if (framebuffer.crop_rect.IsEmpty()) {
+        return VkExtent2D{.width = framebuffer.width, .height = framebuffer.height};
+    }
+    return VkExtent2D{
+        .width = static_cast<u32>(framebuffer.crop_rect.GetWidth()),
+        .height = static_cast<u32>(framebuffer.crop_rect.GetHeight()),
+    };
+}
+#endif
+
 constexpr VkExtent3D CaptureImageExtent{
     .width = VideoCore::Capture::LinearWidth,
     .height = VideoCore::Capture::LinearHeight,
@@ -155,7 +172,11 @@ try
                   present_manager,
                   scheduler,
                   PresentFiltersForAppletCapture)
-    , rasterizer(render_window, gpu, device_memory, device, memory_allocator, state_tracker, scheduler) {
+    , rasterizer(render_window, gpu, device_memory, device, memory_allocator, state_tracker, scheduler)
+#ifdef HAS_LSFG
+    , frame_gen(memory_allocator, scheduler)
+#endif
+{
 
     if (Settings::values.renderer_force_max_clock.GetValue() && device.ShouldBoostClocks()) {
         turbo_mode.emplace(instance, dld);
@@ -191,9 +212,28 @@ void RendererVulkan::Composite(std::span<const Tegra::FramebufferConfig> framebu
     blit_swapchain.DrawToFrame(device, rasterizer, frame, framebuffers,
                                render_window.GetFramebufferLayout(), swapchain.GetImageCount(),
                                swapchain.GetImageViewFormat());
+
+#ifdef HAS_LSFG
+    void(frame_gen.WantedGenerations(present_manager.MaxExtraFrames()));
+
+    frame_gen.Process(device, frame, swapchain.GetImageFormat(), GuestExtent(framebuffers));
+
+    const size_t generated_frames = frame_gen.GeneratedFrameCount();
+    for (size_t generation = 0; generation < generated_frames; ++generation) {
+        Frame* generated = present_manager.GetRenderFrame();
+        blit_swapchain.PrepareFrame(device, generated, render_window.GetFramebufferLayout());
+        frame_gen.GenerateInto(device, generated, generation);
+        scheduler.Flush(*generated->render_ready);
+        present_manager.Present(generated);
+    }
+#endif
+
     scheduler.Flush(*frame->render_ready);
 
     present_manager.Present(frame);
+#ifdef HAS_LSFG
+    scheduler.DispatchWork();
+#endif
 
     gpu.RendererFrameEndNotify();
     rasterizer.TickFrame();
@@ -252,8 +292,11 @@ void RendererVulkan::RenderScreenshot(std::span<const Tegra::FramebufferConfig> 
         return;
     }
 
+    const auto screenshot_layers = Tegra::FilterLayerStack(
+        framebuffers, renderer_settings.screenshot_layer_stack, screenshot_layer_scratch);
+
     const auto& layout{renderer_settings.screenshot_framebuffer_layout};
-    const auto dst_buffer = RenderToBuffer(framebuffers, layout, VK_FORMAT_B8G8R8A8_UNORM,
+    const auto dst_buffer = RenderToBuffer(screenshot_layers, layout, VK_FORMAT_B8G8R8A8_UNORM,
                                            layout.width * layout.height * 4);
 
     std::memcpy(renderer_settings.screenshot_bits, dst_buffer.Mapped().data(),
@@ -292,6 +335,12 @@ std::vector<u8> RendererVulkan::GetAppletCaptureBuffer() {
 
 void RendererVulkan::RenderAppletCaptureLayer(
     std::span<const Tegra::FramebufferConfig> framebuffers) {
+    const auto capture_layers = Tegra::FilterLayerStack(
+        framebuffers, Service::Nvnflinger::LayerStackId::LastFrame, applet_capture_layers);
+
+    if (capture_layers.empty())
+        return;
+
     if (!applet_frame.image) {
         applet_frame.image = CreateWrappedImage(memory_allocator, CaptureImageSize, CaptureFormat);
         applet_frame.image_view = CreateWrappedImageView(device, applet_frame.image, CaptureFormat);
@@ -300,7 +349,7 @@ void RendererVulkan::RenderAppletCaptureLayer(
     }
 
     scheduler.RequestOutsideRenderPassOperationContext();
-    blit_applet.DrawToFrame(device, rasterizer, &applet_frame, framebuffers, VideoCore::Capture::Layout, 1,
+    blit_applet.DrawToFrame(device, rasterizer, &applet_frame, capture_layers, VideoCore::Capture::Layout, 1,
                             CaptureFormat);
 }
 

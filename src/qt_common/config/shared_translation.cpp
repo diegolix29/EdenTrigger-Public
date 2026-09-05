@@ -229,9 +229,9 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QObject* parent) {
            tr("Preserves GPU-modified data by reading it back before uploading.\nSome games require this to render certain effects properly."));
     INSERT(Settings, use_asynchronous_shaders, tr("Enable asynchronous shader compilation"),
            tr("May reduce shader stutter."));
-    INSERT(Settings, fast_gpu_time, tr("Fast GPU Time"),
-           tr("Overclocks the emulated GPU to increase dynamic resolution and render "
-              "distance.\nUse 256 for maximal performance and 512 for maximal graphics fidelity."));
+    INSERT(Settings, gpu_clock, tr("GPU Clocks"),
+           tr("Makes the game believe GPU work finishes faster than it does, so it stops lowering "
+              "resolution and render distance to fit the Switch's clocks."));
     INSERT(Settings, gpu_unswizzle_enabled, tr("GPU Unswizzle"),
            tr("Accelerates BCn 3D texture decoding using GPU compute.\n"
               "Disable if experiencing crashes or graphical glitches."));
@@ -531,9 +531,6 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                               PAIR(AnisotropyMode, X4, tr("4x")),
                               PAIR(AnisotropyMode, X8, tr("8x")),
                               PAIR(AnisotropyMode, X16, tr("16x")),
-                              PAIR(AnisotropyMode, X32, tr("32x")),
-                              PAIR(AnisotropyMode, X64, tr("64x")),
-                              PAIR(AnisotropyMode, None, tr("None")),
                           }});
     translations->insert(
         {Settings::EnumMetadata<Settings::Language>::Index(),
@@ -645,9 +642,9 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
                           }});
     translations->insert({Settings::EnumMetadata<Settings::CpuClock>::Index(),
                           {
-                              PAIR(CpuClock, Off, tr("Off")),
-                              PAIR(CpuClock, Boost, tr("Boost (1700MHz)")),
-                              PAIR(CpuClock, Fast, tr("Fast (2000MHz)")),
+                              PAIR(CpuClock, Normal, tr("Normal")),
+                              PAIR(CpuClock, Boost, tr("Boost")),
+                              PAIR(CpuClock, Overclock, tr("Overclock")),
                           }});
     translations->insert(
         {Settings::EnumMetadata<Settings::ConfirmStop>::Index(),
@@ -656,11 +653,11 @@ std::unique_ptr<ComboboxTranslationMap> ComboboxEnumeration(QObject* parent) {
              PAIR(ConfirmStop, Ask_Based_On_Game, tr("Only if game specifies not to stop")),
              PAIR(ConfirmStop, Ask_Never, tr("Never ask")),
          }});
-    translations->insert({Settings::EnumMetadata<Settings::GpuOverclock>::Index(),
+    translations->insert({Settings::EnumMetadata<Settings::GpuClock>::Index(),
                           {
-                              PAIR(GpuOverclock, Normal, tr("Off")),
-                              PAIR(GpuOverclock, Medium, tr("Medium (256)")),
-                              PAIR(GpuOverclock, High, tr("High (512)")),
+                              PAIR(GpuClock, Normal, tr("Normal")),
+                              PAIR(GpuClock, Boost, tr("Boost")),
+                              PAIR(GpuClock, Overclock, tr("Overclock")),
                           }});
     translations->insert({Settings::EnumMetadata<Settings::GpuUnswizzleSize>::Index(),
                           {

@@ -188,6 +188,7 @@ android {
         create("mainline") {
             dimension = "version"
             isDefault = true
+            minSdk = 33
 
             manifestPlaceholders += mapOf("appNameBase" to "Eden Trigger")
             resValue("string", "app_name_suffixed", "Eden Trigger")
@@ -268,6 +269,13 @@ android {
         // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
         resValue("string", "app_name", "$currentName$suffix")
+    }
+
+    sourceSets {
+        named("main") {
+            java.srcDir("${edenDir}/externals/generated/sdl/java")
+            kotlin.srcDir("${edenDir}/externals/generated/sdl/java")
+        }
     }
 }
 
